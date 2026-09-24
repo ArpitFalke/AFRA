@@ -48,7 +48,7 @@ The design engine (document model, layer system, canvas renderer, export pipelin
 | Auth      | Custom JWT sessions (`jose`), bcryptjs, optional Google OAuth  |
 | Fonts     | Inter, Bebas Neue, Saira Condensed, Archivo Black (@fontsource, offline-friendly) |
 
-> Prisma 6 is pinned deliberately (Prisma 7's CLI is platform-oriented). The schema targets SQLite locally; switch the datasource provider to `postgresql` in `prisma/schema.prisma` and set `DATABASE_URL` for production.
+> Prisma 6 is pinned deliberately (Prisma 7's CLI is platform-oriented). The canonical schema targets **PostgreSQL** (hosted/Vercel). For local development, `scripts/prisma-setup.js` auto-derives a SQLite schema and regenerates the client based on your `DATABASE_URL` — no manual switching. It runs automatically on `postinstall`, `predev` and `prebuild`.
 
 ---
 
@@ -76,11 +76,15 @@ All external services (Google OAuth, S3-compatible storage, AI providers, paymen
 
 ### 3. Database
 
+Local development uses SQLite automatically (`file:./dev.db`) — `npm run dev` syncs and generates the client for you:
+
 ```bash
-npm run db:migrate   # create/apply migrations (dev)
-npm run db:seed      # seed the original template set
-npm run db:studio    # browse data (optional)
+npm run db:setup      # sync schema + generate client (also runs via predev/prebuild)
+npm run db:seed       # seed the original template set
+npm run db:studio     # browse data (optional)
 ```
+
+For a hosted PostgreSQL (Vercel Postgres, Neon, Supabase…): set `DATABASE_URL` to the Postgres connection string, then the client targets Postgres automatically. Apply the schema with `prisma migrate dev --name init` (first time) or `prisma db push`, and `npm run db:seed`.
 
 ### 4. Run
 

@@ -84,7 +84,12 @@ let adapter: StorageAdapter | null = null
 
 export function getStorage(): StorageAdapter {
   if (!adapter) {
-    const root = process.env.AFRA_STORAGE_DIR ?? path.join(process.cwd(), '.data')
+    // Serverless platforms (e.g. Vercel) expose only /tmp as writable —
+    // uploads work there but are ephemeral until a durable adapter
+    // (S3-compatible) is configured. See README > Storage.
+    const root =
+      process.env.AFRA_STORAGE_DIR ??
+      (process.env.VERCEL ? '/tmp/afra-uploads' : path.join(process.cwd(), '.data'))
     adapter = new LocalStorageAdapter(root)
   }
   return adapter
