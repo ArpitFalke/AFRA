@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String?
+  name         String?
+  role         String   @default("user") // "user" | "admin"
+  plan         String   @default("free") // free | pro | studio
+  googleId     String?  @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  accounts    Account[]
+  projects    Project[]
+  assets      Asset[]
+  aiJobs      AIJob[]
+  exportJobs  ExportJob[]
+  usageEvents UsageEvent[]
+}
+
+// OAuth identities (e.g. Google) linked to a user. Credentials live on User.
+model Account {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Project {
+  id             String   @id @default(cuid())
+  userId         String
+  name           String
+  projectType    String // tshirt | jersey | sneaker | livery | poster | album | wallpaper | custom3d
+  thumbnail      String? // data URL of latest preview thumbnail
+  designDocument String // JSON-serialized DesignDocument
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  lastOpenedAt   DateTime @default(now())
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions  ProjectVersion[]
+  exportJobs ExportJob[]
+
+  @@index([userId, updatedAt])
+  @@index([userId, projectType])
+}
+
+model ProjectVersion {
+  id             String   @id @default(cuid())
+  projectId      String
+  version        Int
+  label          String?
+  designDocument String
+  createdAt      DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, version])
+  @@index([projectId, createdAt])
+}
+
+model Asset {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  kind       String   @default("graphic") // logo | graphic | texture | photo | model
+  mimeType   String
+  size       Int
+  storageKey String
+  width      Int?
+  height     Int?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Template {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  name           String
+  projectType    String
+  description    String?
+  tags           String   @default("[]") // JSON string[]
+  designDocument String // JSON DesignDocument used as project seed
+  premium        Boolean  @default(false)
+  published      Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+}
+
+model AIJob {
+  id          String    @id @default(cuid())
+  userId      String
+  projectId   String?
+  kind        String // design | image | variations
+  provider    String
+  status      String    @default("queued") // queued | processing | completed | failed | cancelled
+  input       String
+  output      String?
+  error       String?
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+model ExportJob {
+  id        String   @id @default(cuid())
+  userId    String
+  projectId String?
+  format    String // png | jpg | webp | pdf | glb
+  status    String   @default("completed") // queued | processing | completed | failed
+  options   String   @default("{}")
+  fileKey   String?
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+}
+
+model UsageEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  kind      String // ai_design | ai_image | export | upload | render
+  amount    Int      @default(1)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, kind, createdAt])
+}
+
+model SystemSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

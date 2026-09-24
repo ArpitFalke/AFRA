@@ -1,0 +1,240 @@
+@import 'tailwindcss';
+
+/* ── AFRA design tokens ─────────────────────────────────────────────── */
+@theme {
+  --color-afra-bg: #0d0d0e;
+  --color-afra-panel: #141416;
+  --color-afra-surface: #18181a;
+  --color-afra-hover: #1d1d20;
+  --color-afra-white: #f7f5ef;
+  --color-afra-orange: #ff5a1f;
+  --color-afra-yellow: #ffd43b;
+  --color-afra-muted: #858585;
+  --color-afra-border: #252527;
+  --color-afra-success: #64c466;
+  --color-afra-warning: #ffd43b;
+  --color-afra-danger: #e05252;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  --animate-fade-in: fade-in 180ms ease-out;
+  --animate-slide-up: slide-up 200ms ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Raw tokens available as CSS vars (--afra-*) for canvas & non-Tailwind use */
+:root {
+  --afra-bg: #0d0d0e;
+  --afra-panel: #141416;
+  --afra-surface: #18181a;
+  --afra-white: #f7f5ef;
+  --afra-orange: #ff5a1f;
+  --afra-yellow: #ffd43b;
+  --afra-muted: #858585;
+  --afra-border: #252527;
+  --afra-hover: #1d1d20;
+  --afra-success: #64c466;
+  --afra-danger: #e05252;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--afra-bg);
+  color: var(--afra-white);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(255, 90, 31, 0.35);
+}
+
+/* Focus visibility for keyboard users */
+:focus-visible {
+  outline: 2px solid var(--afra-orange);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Scrollbars — slim, studio-dark */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2c2c30 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #2c2c30;
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Shared primitives ─────────────────────────────────────────────── */
+/* Plain CSS (Tailwind v4 cannot @apply non-utility classes). */
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-ghost,
+.btn-outline,
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  user-select: none;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease;
+}
+.btn:focus-visible,
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-ghost:focus-visible,
+.btn-outline:focus-visible,
+.btn-danger:focus-visible {
+  outline: 2px solid var(--afra-orange);
+  outline-offset: 2px;
+}
+.btn:disabled,
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-ghost:disabled,
+.btn-outline:disabled,
+.btn-danger:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.btn-primary {
+  background: var(--afra-orange);
+  color: #000;
+}
+.btn-primary:hover {
+  background: #ff6d38;
+}
+.btn-secondary {
+  background: var(--afra-white);
+  color: #000;
+}
+.btn-secondary:hover {
+  background: rgba(247, 245, 239, 0.85);
+}
+.btn-ghost {
+  color: rgba(247, 245, 239, 0.8);
+}
+.btn-ghost:hover {
+  color: var(--afra-white);
+  background: var(--afra-hover);
+}
+.btn-outline {
+  border: 1px solid var(--afra-border);
+  color: rgba(247, 245, 239, 0.9);
+}
+.btn-outline:hover {
+  border-color: var(--afra-muted);
+  background: var(--afra-hover);
+}
+.btn-danger {
+  color: var(--afra-danger);
+}
+.btn-danger:hover {
+  background: rgba(224, 82, 82, 0.12);
+}
+
+.input {
+  @apply w-full rounded-md border border-afra-border bg-afra-bg px-3 py-2 text-sm text-afra-white placeholder:text-afra-muted/60 focus:border-afra-orange focus:outline-none transition-colors;
+}
+
+.label {
+  @apply block text-[11px] font-medium uppercase tracking-[0.12em] text-afra-muted;
+}
+
+.panel-section-title {
+  @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-afra-muted;
+}
+
+/* Color input swatch alignment */
+input[type='color'] {
+  -webkit-appearance: none;
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+input[type='color']::-webkit-color-swatch {
+  border: 1px solid var(--afra-border);
+  border-radius: 6px;
+}
+input[type='color']::-moz-color-swatch {
+  border: 1px solid var(--afra-border);
+  border-radius: 6px;
+}
+
+/* Range sliders */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: #2c2c30;
+  cursor: pointer;
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--afra-white);
+  border: none;
+}
+input[type='range']::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--afra-white);
+  border: none;
+}
