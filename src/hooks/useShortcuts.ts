@@ -4,7 +4,15 @@ import { useEffect } from 'react'
 import { useEditorStore } from '@/stores/editor-store'
 import type { CameraView } from '@/components/three/CameraRig'
 
-const VIEW_KEYS: Record<string, CameraView> = { f: 'front', b: 'back', l: 'left', r: 'right', t: 'top' }
+const VIEW_KEYS: Record<string, CameraView> = {
+  f: 'front',
+  b: 'back',
+  l: 'left',
+  r: 'right',
+  t: 'top',
+  p: 'product',
+  c: 'closeup',
+}
 
 function isTypingTarget(e: KeyboardEvent): boolean {
   const el = e.target as HTMLElement | null

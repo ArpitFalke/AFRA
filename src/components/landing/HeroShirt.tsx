@@ -5,7 +5,6 @@ import { ContactShadows, OrbitControls } from '@react-three/drei'
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { TShirtModel } from '@/components/three/TShirtModel'
-import { DesignSurface } from '@/components/three/DesignSurface'
 import { createNumberLayer, createShapeLayer, createTextLayer } from '@/lib/design/defaults'
 import { useEditorStore } from '@/stores/editor-store'
 import type { DesignDocument } from '@/lib/design/types'
@@ -54,7 +53,7 @@ function HeroShirtWithDesign() {
       projectType: 'tshirt',
       version: 1,
       metadata: { title: 'AFRA Hero', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      garment: { color: '#1A1A1E', material: 'heavy' },
+      garment: { color: '#1A1A1E', material: 'heavy-cotton', variant: 'mens-regular-half', opacity: 1 },
       layers: [
         createShapeLayer('front', 'double-stripe', { name: 'Chest stripes', y: 0.2, scale: 0.6, color: '#FF5A1F', secondaryColor: '#F7F5EF' }),
         createTextLayer('front', { name: 'AFRA', text: 'AFRA', y: 0.44, fontSize: 170, fontId: 'bebas', color: '#F7F5EF', letterSpacing: 0.18 }),
@@ -84,8 +83,6 @@ function HeroShirtWithDesign() {
   return (
     <group ref={group} position={[0, 0.05, 0]}>
       <TShirtModel />
-      <DesignSurface side="front" position={[0, 0.26, 0.216]} />
-      <DesignSurface side="back" position={[0, 0.26, -0.216]} rotation={[0, Math.PI, 0]} />
     </group>
   )
 }

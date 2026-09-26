@@ -5,30 +5,29 @@ import {
   type GraphicLayer,
   type PatternLayer,
   type ShapeLayer,
-  type Side,
   type TextLayer,
-  layersForSide,
+  layersForZone,
   layerBounds,
 } from './types'
+import type { Zone, ZoneDef } from '@/lib/garment/zones'
+import { ZONES, zoneWraps } from '@/lib/garment/zones'
 import { getFont } from './fonts'
-
-export type AssetResolver = (src: string) => Promise<HTMLImageElement | null>
 
 export interface RenderOptions {
   /** Selected layer gets a dashed selection frame drawn into the texture. */
   selectedLayerId?: string | null
 }
 
-const cache = new Map<string, HTMLImageElement>()
+const imageCache = new Map<string, HTMLImageElement>()
 
 export function resolveImage(src: string): Promise<HTMLImageElement | null> {
-  const hit = cache.get(src)
+  const hit = imageCache.get(src)
   if (hit && hit.complete && hit.naturalWidth > 0) return Promise.resolve(hit)
   return new Promise((resolve) => {
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.onload = () => {
-      cache.set(src, img)
+      imageCache.set(src, img)
       resolve(img)
     }
     img.onerror = () => resolve(null)
@@ -304,7 +303,7 @@ export function drawLayer(
     case 'graphic': {
       if (image) {
         const g = layer as GraphicLayer
-        // Context is pre-scaled by layer.scale; draw at natural design size.
+        if (g.blend && g.blend !== 'normal') ctx.globalCompositeOperation = g.blend
         const wpx = g.aspect >= 1 ? g.baseSize : g.baseSize * g.aspect
         const hpx = g.aspect >= 1 ? g.baseSize / g.aspect : g.baseSize
         ctx.drawImage(image, -wpx / 2, -hpx / 2, wpx, hpx)
@@ -329,38 +328,37 @@ function drawSelectionFrame(ctx: CanvasRenderingContext2D, layer: DesignLayer, s
 }
 
 /**
- * Composite one side of the design onto a canvas context.
- * The context is cleared first — the garment itself provides the base color,
- * so the texture has transparency where no layers exist.
+ * Composite one placement zone into a square canvas (design space).
+ * Transparent background — the caller bakes this over the fabric.
  */
-export function renderSideToCanvas(
+export function renderZoneToCanvas(
   ctx: CanvasRenderingContext2D,
   doc: DesignDocument,
-  side: Side,
+  zone: Zone,
   size: number,
   images: Record<string, HTMLImageElement>,
   options: RenderOptions = {},
 ) {
   ctx.clearRect(0, 0, size, size)
-  for (const layer of layersForSide(doc, side)) {
+  for (const layer of layersForZone(doc, zone)) {
     if (!layer.visible) continue
     const image = layer.type === 'graphic' ? images[(layer as GraphicLayer).src] ?? null : null
     drawLayer(ctx, layer, size, image)
   }
   if (options.selectedLayerId) {
     const sel = doc.layers.find((l) => l.id === options.selectedLayerId)
-    if (sel && sel.side === side && sel.visible) drawSelectionFrame(ctx, sel, size)
+    if (sel && sel.zone === zone && sel.visible) drawSelectionFrame(ctx, sel, size)
   }
 }
 
-/** Hit-test layers top→bottom at a point in design space. */
+/** Hit-test layers top→bottom at a point in zone design space. */
 export function pickLayerAt(
   doc: DesignDocument,
-  side: Side,
+  zone: Zone,
   px: number,
   py: number,
 ): DesignLayer | null {
-  const layers = layersForSide(doc, side)
+  const layers = layersForZone(doc, zone)
   for (let i = layers.length - 1; i >= 0; i--) {
     const layer = layers[i]
     if (!layer.visible || layer.locked || layer.type === 'pattern') continue
@@ -370,10 +368,33 @@ export function pickLayerAt(
     const a = (-layer.rotation * Math.PI) / 180
     const lx = dx * Math.cos(a) - dy * Math.sin(a)
     const ly = dx * Math.sin(a) + dy * Math.cos(a)
-    const scale = 1 // layerBounds already includes layer scale
-    void scale
     const pad = 20 / DESIGN_SPACE
     if (Math.abs(lx) <= w / 2 + pad && Math.abs(ly) <= h / 2 + pad) return layer
   }
   return null
+}
+
+/**
+ * Pixel rectangles a zone occupies on its part's texture canvas.
+ * Wrapping zones (back) yield two rects.
+ */
+export function zoneRects(
+  zone: ZoneDef,
+  canvasW: number,
+  canvasH: number,
+): { x: number; w: number; y: number; h: number }[] {
+  const y = (1 - zone.v1) * canvasH
+  const h = (zone.v1 - zone.v0) * canvasH
+  const segs: { u0: number; u1: number }[] = []
+  if (zoneWraps(zone)) {
+    segs.push({ u0: zone.u0, u1: 1 }, { u0: 0, u1: zone.u1 - 1 })
+  } else {
+    segs.push({ u0: zone.u0, u1: zone.u1 })
+  }
+  return segs.map((s) => ({ x: s.u0 * canvasW, w: (s.u1 - s.u0) * canvasW, y, h }))
+}
+
+/** Get a zone def by id. */
+export function getZoneDef(zone: Zone): ZoneDef {
+  return ZONES[zone]
 }

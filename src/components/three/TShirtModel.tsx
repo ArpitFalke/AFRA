@@ -1,96 +1,257 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { getMaterial } from '@/lib/design/fonts'
+import type { ThreeEvent } from '@react-three/fiber'
+import { buildGarment } from '@/lib/garment/geometry'
+import { getDims, parseVariantKey, variantKey } from '@/lib/garment/params'
+import { ZONES, zonesForPart, type GarmentPart, type Zone } from '@/lib/garment/zones'
+import { getMaterialPreset, getWeaveTextures } from '@/lib/garment/materials'
+import { bakePart } from '@/lib/garment/bake'
+import { ensureFontsReady } from '@/lib/design/fonts'
+import { pickLayerAt, resolveImage } from '@/lib/design/render'
 import { useEditorStore } from '@/stores/editor-store'
 
-/** Procedural T-shirt geometry — no external model files required. */
-function buildTorsoGeometry(): THREE.ExtrudeGeometry {
-  const s = new THREE.Shape()
-  s.moveTo(-0.5, 0.66)
-  s.quadraticCurveTo(-0.36, 0.75, -0.2, 0.77)
-  s.quadraticCurveTo(0, 0.86, 0.2, 0.77)
-  s.quadraticCurveTo(0.36, 0.75, 0.5, 0.66)
-  s.lineTo(0.56, 0.5)
-  s.lineTo(0.52, -0.62)
-  s.quadraticCurveTo(0.52, -0.72, 0.42, -0.73)
-  s.lineTo(-0.42, -0.73)
-  s.quadraticCurveTo(-0.52, -0.72, -0.52, -0.62)
-  s.lineTo(-0.56, 0.5)
-  s.closePath()
+const BAKE_SIZE = 1024
 
-  // neck opening
-  const neck = new THREE.Path()
-  neck.absellipse(0, 0.77, 0.155, 0.072, 0, Math.PI * 2, false, 0)
-  s.holes.push(neck)
-
-  const geo = new THREE.ExtrudeGeometry(s, {
-    depth: 0.3,
-    bevelEnabled: true,
-    bevelThickness: 0.055,
-    bevelSize: 0.05,
-    bevelSegments: 4,
-    curveSegments: 28,
-  })
-  geo.translate(0, 0, -0.15)
-  geo.computeVertexNormals()
-  return geo
+function darken(hex: string, f: number): string {
+  const n = hex.replace('#', '')
+  const r = Math.round(parseInt(n.slice(0, 2), 16) * f)
+  const g = Math.round(parseInt(n.slice(2, 4), 16) * f)
+  const b = Math.round(parseInt(n.slice(4, 6), 16) * f)
+  return `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)}`
 }
 
-function buildSleeveGeometry(): THREE.ExtrudeGeometry {
-  const s = new THREE.Shape()
-  s.moveTo(-0.125, 0.04)
-  s.lineTo(0.125, 0.04)
-  s.lineTo(0.175, -0.36)
-  s.lineTo(-0.175, -0.31)
-  s.closePath()
-  const geo = new THREE.ExtrudeGeometry(s, {
-    depth: 0.24,
-    bevelEnabled: true,
-    bevelThickness: 0.035,
-    bevelSize: 0.035,
-    bevelSegments: 3,
-    curveSegments: 12,
-  })
-  geo.translate(0, 0, -0.12)
-  geo.computeVertexNormals()
-  return geo
+interface PartTextures {
+  map: THREE.CanvasTexture
+  roughMap: THREE.CanvasTexture
+  colorCanvas: HTMLCanvasElement
+  roughCanvas: HTMLCanvasElement
+  colorCtx: CanvasRenderingContext2D
+  roughCtx: CanvasRenderingContext2D
 }
 
-function darken(hex: string, factor: number): string {
-  const c = new THREE.Color(hex)
-  c.multiplyScalar(factor)
-  return `#${c.getHexString()}`
+function makePartTextures(): PartTextures {
+  const colorCanvas = document.createElement('canvas')
+  colorCanvas.width = colorCanvas.height = BAKE_SIZE
+  const roughCanvas = document.createElement('canvas')
+  roughCanvas.width = roughCanvas.height = BAKE_SIZE
+  const map = new THREE.CanvasTexture(colorCanvas)
+  map.colorSpace = THREE.SRGBColorSpace
+  map.anisotropy = 8
+  const roughMap = new THREE.CanvasTexture(roughCanvas)
+  roughMap.colorSpace = THREE.NoColorSpace
+  return { map, roughMap, colorCanvas, roughCanvas, colorCtx: colorCanvas.getContext('2d')!, roughCtx: roughCanvas.getContext('2d')! }
 }
 
+/**
+ * The garment: parametric mesh per variant with baked fabric + print
+ * textures. Prints are composited into the surface, so they follow folds
+ * and lighting like real ink. Handles click-pick and drag-to-move of the
+ * selected layer directly on the garment.
+ */
 export function TShirtModel() {
-  const color = useEditorStore((s) => s.doc.garment.color)
-  const materialId = useEditorStore((s) => s.doc.garment.material)
+  const doc = useEditorStore((s) => s.doc)
+  const selectedLayerId = useEditorStore((s) => s.selectedLayerId)
+  const select = useEditorStore((s) => s.select)
+  const updateLayer = useEditorStore((s) => s.updateLayer)
+  const pushHistory = useEditorStore((s) => s.pushHistory)
 
-  const torso = useMemo(() => buildTorsoGeometry(), [])
-  const sleeve = useMemo(() => buildSleeveGeometry(), [])
+  const variant = useMemo(() => parseVariantKey(doc.garment.variant), [doc.garment.variant])
+  const build = useMemo(() => buildGarment(getDims(variant), variantKey(variant)), [variant])
 
-  const mat = getMaterial(materialId)
+  const parts = useMemo(
+    () => ({ torso: makePartTextures(), 'sleeve-l': makePartTextures(), 'sleeve-r': makePartTextures() }),
+    [],
+  )
+
+  const imagesRef = useRef<Record<string, HTMLImageElement>>({})
+  const [imagesVersion, setImagesVersion] = useState(0)
+  const dragRef = useRef<{ layerId: string; dx: number; dy: number; zone: Zone } | null>(null)
+
+  // Load fonts + graphic assets, then bake.
+  useEffect(() => {
+    let cancelled = false
+    const fontIds = doc.layers.filter((l) => l.type === 'text').map((l) => l.fontId as string)
+    const srcs = doc.layers.filter((l) => l.type === 'graphic').map((l) => (l as { src: string }).src)
+    Promise.all([
+      ensureFontsReady(['inter', 'bebas', 'saira-condensed', 'archivo-black', ...fontIds]),
+      ...srcs.map(async (src) => {
+        if (imagesRef.current[src]) return
+        const img = await resolveImage(src)
+        if (img) {
+          imagesRef.current[src] = img
+          setImagesVersion((v) => v + 1)
+        }
+      }),
+    ]).then(() => {
+      if (!cancelled) rebake()
+    })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc.layers])
+
+  function rebake() {
+    const state = useEditorStore.getState()
+    for (const part of ['torso', 'sleeve-l', 'sleeve-r'] as GarmentPart[]) {
+      const pt = parts[part]
+      const bake = bakePart(state.doc, part, BAKE_SIZE, imagesRef.current, {
+        selectedLayerId: state.selectedLayerId,
+      })
+      pt.colorCtx.clearRect(0, 0, BAKE_SIZE, BAKE_SIZE)
+      pt.colorCtx.drawImage(bake.color, 0, 0)
+      pt.roughCtx.clearRect(0, 0, BAKE_SIZE, BAKE_SIZE)
+      pt.roughCtx.drawImage(bake.rough, 0, 0)
+      pt.map.needsUpdate = true
+      pt.roughMap.needsUpdate = true
+    }
+  }
+
+  useEffect(() => {
+    rebake()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc, selectedLayerId, imagesVersion])
+
+  useEffect(
+    () => () => {
+      for (const pt of Object.values(parts)) {
+        pt.map.dispose()
+        pt.roughMap.dispose()
+      }
+    },
+    [parts],
+  )
+
+  const preset = getMaterialPreset(doc.garment.material)
+  const fabric = getWeaveTextures(preset.weave, preset.weaveScale)
+  const override = doc.garment.fabricOverride
+  const normalStrength = override?.normalStrength ?? preset.normalScale
+  const roughness = override?.roughness ?? preset.roughness
+  const sheen = override?.sheen ?? preset.sheen
+  const opacity = doc.garment.opacity ?? 1
+
+  const commonProps = {
+    roughness,
+    metalness: 0,
+    sheen,
+    sheenRoughness: preset.sheenRoughness,
+    sheenColor: new THREE.Color('#ffffff'),
+    normalMap: fabric.normalMap,
+    normalScale: new THREE.Vector2(normalStrength, normalStrength),
+    envMapIntensity: 0.9,
+    specularIntensity: 0.55,
+    transparent: opacity < 1,
+    opacity,
+    side: THREE.DoubleSide,
+  }
+
+  function uvToZoneDesign(part: GarmentPart, uv: THREE.Vector2): { zone: Zone; x: number; y: number } | null {
+    for (const zoneId of zonesForPart(part)) {
+      const def = ZONES[zoneId]
+      const inV = uv.y >= def.v0 && uv.y <= def.v1
+      if (!inV) continue
+      const rel = ((uv.x - def.u0) % 1 + 1) % 1
+      const span = def.u1 - def.u0
+      if (rel <= span) {
+        return { zone: zoneId, x: rel / span, y: (def.v1 - uv.y) / (def.v1 - def.v0) }
+      }
+    }
+    return null
+  }
+
+  function onPointerDown(part: GarmentPart) {
+    return (e: ThreeEvent<PointerEvent>) => {
+      e.stopPropagation()
+      if (!e.uv) return
+      const hit = uvToZoneDesign(part, e.uv)
+      if (!hit) return
+      const state = useEditorStore.getState()
+      const sel = state.doc.layers.find((l) => l.id === state.selectedLayerId)
+      if (sel && sel.visible && !sel.locked && sel.type !== 'pattern' && sel.zone === hit.zone) {
+        pushHistory()
+        dragRef.current = { layerId: sel.id, dx: sel.x - hit.x, dy: sel.y - hit.y, zone: hit.zone }
+        ;(e.target as Element).setPointerCapture(e.pointerId)
+        return
+      }
+      const found = pickLayerAt(state.doc, hit.zone, hit.x, hit.y)
+      select(found?.id ?? null)
+    }
+  }
+
+  function onPointerMove(e: ThreeEvent<PointerEvent>) {
+    const drag = dragRef.current
+    if (!drag) return
+    if (!e.uv) return
+    const part = ZONES[drag.zone].part
+    const hit = uvToZoneDesign(part, e.uv)
+    if (!hit || hit.zone !== drag.zone) return
+    updateLayer(
+      drag.layerId,
+      { x: Math.min(0.98, Math.max(0.02, hit.x + drag.dx)), y: Math.min(0.98, Math.max(0.02, hit.y + drag.dy)) },
+      'none',
+    )
+  }
+
+  function endDrag() {
+    dragRef.current = null
+  }
 
   return (
-    <group position={[0, -0.02, 0]}>
-      <mesh geometry={torso} castShadow receiveShadow>
-        <meshStandardMaterial color={color} roughness={mat.roughness} metalness={mat.metalness} />
+    <group position={[0, 0.06, 0]}>
+      <mesh
+        geometry={build.torso.geometry}
+        castShadow
+        receiveShadow
+        onPointerDown={onPointerDown('torso')}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+      >
+        <meshPhysicalMaterial {...commonProps} map={parts.torso.map} roughnessMap={parts.torso.roughMap} />
       </mesh>
 
-      {([1, -1] as const).map((side) => (
-        <group key={side} position={[side * 0.46, 0.56, 0]} rotation={[0, 0, side * -0.62]}>
-          <mesh geometry={sleeve} castShadow receiveShadow>
-            <meshStandardMaterial color={color} roughness={mat.roughness} metalness={mat.metalness} />
-          </mesh>
-        </group>
-      ))}
+      <mesh
+        geometry={build.sleeveL.geometry}
+        castShadow
+        receiveShadow
+        onPointerDown={onPointerDown('sleeve-l')}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+      >
+        <meshPhysicalMaterial {...commonProps} map={parts['sleeve-l'].map} roughnessMap={parts['sleeve-l'].roughMap} />
+      </mesh>
 
-      {/* collar rib */}
-      <mesh position={[0, 0.755, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[1, 1, 0.62]}>
-        <torusGeometry args={[0.155, 0.032, 12, 48]} />
-        <meshStandardMaterial color={darken(color, 0.78)} roughness={Math.max(0.5, mat.roughness - 0.1)} metalness={mat.metalness} />
+      <mesh
+        geometry={build.sleeveR.geometry}
+        castShadow
+        receiveShadow
+        onPointerDown={onPointerDown('sleeve-r')}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+      >
+        <meshPhysicalMaterial {...commonProps} map={parts['sleeve-r'].map} roughnessMap={parts['sleeve-r'].roughMap} />
+      </mesh>
+
+      <mesh geometry={build.collar} castShadow>
+        <meshPhysicalMaterial
+          color={darken(doc.garment.color, 0.82)}
+          roughness={Math.min(1, roughness + 0.04)}
+          metalness={0}
+          sheen={sheen * 0.8}
+          sheenRoughness={preset.sheenRoughness}
+          sheenColor={new THREE.Color('#ffffff')}
+          normalMap={fabric.normalMap}
+          normalScale={new THREE.Vector2(normalStrength * 1.5, normalStrength * 0.4)}
+          envMapIntensity={0.85}
+          specularIntensity={0.55}
+          transparent={opacity < 1}
+          opacity={opacity}
+          side={THREE.DoubleSide}
+        />
       </mesh>
     </group>
   )

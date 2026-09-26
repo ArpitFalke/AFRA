@@ -7,6 +7,7 @@ import { LeftToolbar, type PanelId } from './LeftToolbar'
 import { PropertiesPanel } from './PropertiesPanel'
 import { BottomBar } from './BottomBar'
 import { AIGenerateModal } from './AIGenerateModal'
+import { AIGraphicModal } from './AIGraphicModal'
 import { ExportDialog } from './ExportDialog'
 import { PresentationMode } from './PresentationMode'
 import { Toaster } from '@/components/shared/Toast'
@@ -38,6 +39,7 @@ export function EditorShell({ user, autoOpenAI = false }: { user: EditorUser; au
   const setView = useEditorStore((s) => s.setView)
   const [panel, setPanel] = useState<PanelId>(null)
   const [aiOpen, setAiOpen] = useState(autoOpenAI)
+  const [aiGraphicOpen, setAiGraphicOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [propsOpenMobile, setPropsOpenMobile] = useState(false)
 
@@ -65,7 +67,7 @@ export function EditorShell({ user, autoOpenAI = false }: { user: EditorUser; au
       />
 
       <div className="relative flex min-h-0 flex-1">
-        <LeftToolbar panel={panel} setPanel={setPanel} onClose={() => setPanel(null)} />
+        <LeftToolbar panel={panel} setPanel={setPanel} onClose={() => setPanel(null)} onOpenAIGraphic={() => setAiGraphicOpen(true)} />
 
         <main className="relative min-w-0 flex-1 bg-afra-bg">
           <Viewport />
@@ -108,6 +110,7 @@ export function EditorShell({ user, autoOpenAI = false }: { user: EditorUser; au
       </button>
 
       <AIGenerateModal open={aiOpen} onClose={() => setAiOpen(false)} />
+      <AIGraphicModal open={aiGraphicOpen} onClose={() => setAiGraphicOpen(false)} />
       <ExportDialog open={exportOpen} onClose={() => setExportOpen(false)} />
       <Toaster />
     </div>

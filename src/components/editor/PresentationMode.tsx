@@ -73,7 +73,7 @@ export function PresentationMode({ onExit }: { onExit: () => void }) {
         }`}
       >
         <div className="pointer-events-auto flex items-center gap-1 rounded-lg border border-afra-border bg-afra-panel/90 px-2 py-1.5 backdrop-blur">
-          {(['front', 'back', 'left', 'right', 'top', 'orbit'] as const).map((v) => (
+          {(['front', 'back', 'left', 'right', 'product', 'closeup', 'top', 'orbit'] as const).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}

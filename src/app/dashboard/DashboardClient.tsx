@@ -9,6 +9,8 @@ import { Toaster, toast } from '@/components/shared/Toast'
 import { Spinner } from '@/components/shared/Spinner'
 import { PROJECT_TYPES, PROJECT_TYPE_META, type ProjectType } from '@/lib/design/types'
 import { renderPreviewToCanvas } from '@/lib/design/preview'
+import { VariantSelector } from '@/components/shared/VariantSelector'
+import { DEFAULT_VARIANT, variantKey, type TShirtVariant } from '@/lib/garment/params'
 
 interface ProjectRow {
   id: string
@@ -48,14 +50,19 @@ export function DashboardClient({
     [projects, filter],
   )
 
-  async function createProject(opts: { name: string; projectType: ProjectType; templateId?: string; ai?: boolean }) {
+  async function createProject(opts: { name: string; projectType: ProjectType; templateId?: string; ai?: boolean; variant?: TShirtVariant }) {
     if (creating) return
     setCreating(true)
     try {
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: opts.name, projectType: opts.projectType, templateId: opts.templateId }),
+        body: JSON.stringify({
+          name: opts.name,
+          projectType: opts.projectType,
+          templateId: opts.templateId,
+          ...(opts.variant ? { variant: variantKey(opts.variant) } : {}),
+        }),
       })
       const body = (await res.json()) as { project?: { id: string }; error?: { message: string } }
       if (!res.ok || !body.project) throw new Error(body.error?.message ?? 'Could not create the project.')
@@ -247,15 +254,16 @@ function NewDesignModal({
   open: boolean
   onClose: () => void
   creating: boolean
-  onCreate: (opts: { name: string; projectType: ProjectType; templateId?: string; ai?: boolean }) => void
+  onCreate: (opts: { name: string; projectType: ProjectType; templateId?: string; ai?: boolean; variant?: TShirtVariant }) => void
   templates: TemplateRow[]
 }) {
-  const [step, setStep] = useState<1 | 2>(1)
+  const [step, setStep] = useState<1 | 2 | 3>(1)
   const [type, setType] = useState<ProjectType>('tshirt')
   const [name, setName] = useState('')
+  const [variant, setVariant] = useState<TShirtVariant>(DEFAULT_VARIANT)
 
   return (
-    <Modal open={open} onClose={onClose} title={step === 1 ? 'What are you making?' : 'Start from'} width={640}>
+    <Modal open={open} onClose={onClose} title={step === 1 ? 'What are you making?' : step === 2 ? 'T-Shirt setup' : 'Start from'} width={640}>
       {step === 1 ? (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {PROJECT_TYPES.map((t) => {
@@ -267,7 +275,7 @@ function NewDesignModal({
                 disabled={!live}
                 onClick={() => {
                   setType(t)
-                  setStep(2)
+                  setStep(t === 'tshirt' ? 2 : 3)
                 }}
                 className={`relative rounded-lg border px-3 py-5 text-center text-sm transition-colors ${
                   live
@@ -281,6 +289,19 @@ function NewDesignModal({
             )
           })}
         </div>
+      ) : step === 2 ? (
+        <div>
+          <p className="mb-4 text-xs leading-relaxed text-afra-muted">
+            Pick the garment shape — the 3D model is rebuilt for every selection.
+          </p>
+          <VariantSelector value={variant} onChange={setVariant} />
+          <button onClick={() => setStep(3)} className="btn-primary mt-5 w-full py-2.5 text-sm">
+            Continue
+          </button>
+          <button onClick={() => setStep(1)} className="btn-ghost mt-2 text-xs">
+            ← Back
+          </button>
+        </div>
       ) : (
         <div>
           <div className="mb-4">
@@ -293,23 +314,23 @@ function NewDesignModal({
             <StartCard
               title="Blank"
               desc="Clean studio canvas."
-              onClick={() => onCreate({ name: name.trim() || 'Untitled design', projectType: type })}
+              onClick={() => onCreate({ name: name.trim() || 'Untitled design', projectType: type, variant })}
             />
             <StartCard
               title="Template"
               desc="Racing-inspired presets."
-              onClick={() => onCreate({ name: name.trim() || 'Untitled design', projectType: type, templateId: templates[0]?.id })}
+              onClick={() => onCreate({ name: name.trim() || 'Untitled design', projectType: type, templateId: templates[0]?.id, variant })}
               submenu={templates.map((t) => ({ id: t.id, name: t.name }))}
-              onPick={(templateId) => onCreate({ name: name.trim() || 'Untitled design', projectType: type, templateId })}
+              onPick={(templateId) => onCreate({ name: name.trim() || 'Untitled design', projectType: type, templateId, variant })}
             />
             <StartCard
               title="Create with AI"
               desc="Describe it, edit everything."
               ai
-              onClick={() => onCreate({ name: name.trim() || 'Untitled design', projectType: type, ai: true })}
+              onClick={() => onCreate({ name: name.trim() || 'Untitled design', projectType: type, ai: true, variant })}
             />
           </div>
-          <button onClick={() => setStep(1)} className="btn-ghost mt-4 text-xs">
+          <button onClick={() => setStep(type === 'tshirt' ? 2 : 1)} className="btn-ghost mt-4 text-xs">
             ← Back
           </button>
         </div>

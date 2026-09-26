@@ -5,9 +5,10 @@ import {
   type PatternLayer,
   type ShapeLayer,
   type ShapePreset,
-  type Side,
   type TextLayer,
 } from './types'
+import { DEFAULT_VARIANT, variantKey } from '@/lib/garment/params'
+import type { Zone } from '@/lib/garment/zones'
 
 export function nowIso() {
   return new Date().toISOString()
@@ -20,19 +21,20 @@ export function createDefaultDocument(projectType: DesignDocument['projectType']
     projectType,
     version: 1,
     metadata: { title, createdAt: ts, updatedAt: ts },
-    garment: { color: '#141416', material: 'cotton' },
+    garment: { color: '#141416', material: 'cotton', variant: variantKey(DEFAULT_VARIANT), opacity: 1 },
     layers: [],
     scene: { background: 'studio', customBackground: '#0D0D0E', floor: true },
     lighting: { preset: 'studio', intensity: 1, shadow: true },
   }
 }
 
-export function createTextLayer(side: Side, overrides: Partial<TextLayer> = {}): TextLayer {
+export function createTextLayer(zone: Zone, overrides: Partial<TextLayer> = {}): TextLayer {
   return {
     id: newLayerId(),
     type: 'text',
     name: 'Text',
-    side,
+    zone,
+    side: zone === "back" ? "back" : "front",
     visible: true,
     locked: false,
     opacity: 1,
@@ -54,8 +56,8 @@ export function createTextLayer(side: Side, overrides: Partial<TextLayer> = {}):
   }
 }
 
-export function createNumberLayer(side: Side, value: string, overrides: Partial<TextLayer> = {}): TextLayer {
-  return createTextLayer(side, {
+export function createNumberLayer(zone: Zone, value: string, overrides: Partial<TextLayer> = {}): TextLayer {
+  return createTextLayer(zone, {
     name: `Number ${value}`,
     text: value,
     fontId: 'saira-condensed',
@@ -68,12 +70,13 @@ export function createNumberLayer(side: Side, value: string, overrides: Partial<
   })
 }
 
-export function createShapeLayer(side: Side, preset: ShapePreset, overrides: Partial<ShapeLayer> = {}): ShapeLayer {
+export function createShapeLayer(zone: Zone, preset: ShapePreset, overrides: Partial<ShapeLayer> = {}): ShapeLayer {
   return {
     id: newLayerId(),
     type: 'shape',
     name: SHAPE_LABELS[preset],
-    side,
+    zone,
+    side: zone === "back" ? "back" : "front",
     visible: true,
     locked: false,
     opacity: 1,
@@ -101,12 +104,13 @@ export const SHAPE_LABELS: Record<ShapePreset, string> = {
   bolt: 'Bolt',
 }
 
-export function createPatternLayer(side: Side, preset: PatternLayer['preset'], overrides: Partial<PatternLayer> = {}): PatternLayer {
+export function createPatternLayer(zone: Zone, preset: PatternLayer['preset'], overrides: Partial<PatternLayer> = {}): PatternLayer {
   return {
     id: newLayerId(),
     type: 'pattern',
     name: `${preset[0].toUpperCase()}${preset.slice(1)} pattern`,
-    side,
+    zone,
+    side: zone === "back" ? "back" : "front",
     visible: true,
     locked: false,
     opacity: 1,
@@ -125,7 +129,7 @@ export function createPatternLayer(side: Side, preset: PatternLayer['preset'], o
 }
 
 export function createGraphicLayer(
-  side: Side,
+  zone: Zone,
   asset: { id: string; src: string; aspect: number },
   overrides: Partial<GraphicLayer> = {},
 ): GraphicLayer {
@@ -133,7 +137,8 @@ export function createGraphicLayer(
     id: newLayerId(),
     type: 'graphic',
     name: 'Graphic',
-    side,
+    zone,
+    side: zone === "back" ? "back" : "front",
     visible: true,
     locked: false,
     opacity: 1,

@@ -13,6 +13,7 @@ const createSchema = z.object({
   name: z.string().trim().min(1, 'Name your project.').max(80),
   projectType: z.enum(PROJECT_TYPES),
   templateId: z.string().cuid().optional(),
+  variant: z.string().max(40).optional(),
 })
 
 export async function GET() {
@@ -57,6 +58,9 @@ export async function POST(req: NextRequest) {
       designDocument.metadata.updatedAt = new Date().toISOString()
     } else {
       designDocument = createDefaultDocument(body.projectType, body.name)
+      if (body.variant && /^[a-z]+-(oversized|regular|slim|cropped|boxy|longline)-(half|full)$/.test(body.variant)) {
+        designDocument.garment.variant = body.variant
+      }
     }
 
     const project = await prisma.project.create({

@@ -27,13 +27,14 @@ const TEMPLATES: TemplateSeed[] = [
   {
     slug: 'apex',
     name: 'Apex',
-    description: 'Racing yellow chevrons on deep black.',
+    description: 'Racing yellow chevrons on heavyweight black.',
     tags: ['racing', 'dark', 'yellow'],
     sortOrder: 1,
     build: () => {
       const doc = createDefaultDocument('tshirt', 'Apex')
       doc.garment.color = '#101014'
-      doc.garment.material = 'sport-poly'
+      doc.garment.material = 'heavy-cotton'
+      doc.garment.variant = 'mens-oversized-half'
       doc.layers = [
         createShapeLayer('front', 'chevron', { name: 'Apex chevron', y: 0.36, scale: 0.72, color: '#FFD43B' }),
         createShapeLayer('front', 'chevron', { name: 'Apex chevron lower', y: 0.52, scale: 0.5, color: '#2A2A2E' }),
@@ -47,13 +48,14 @@ const TEMPLATES: TemplateSeed[] = [
   {
     slug: 'tokyo-grid',
     name: 'Tokyo Grid',
-    description: 'Night-street grid pattern with magenta accents.',
+    description: 'Night-street type with magenta accents.',
     tags: ['tokyo', 'street', 'grid'],
     sortOrder: 2,
     build: () => {
       const doc = createDefaultDocument('tshirt', 'Tokyo Grid')
       doc.garment.color = '#14141A'
       doc.garment.material = 'cotton'
+      doc.garment.variant = 'mens-regular-half'
       doc.layers = [
         createTextLayer('front', { name: 'TOKYO', text: 'TOKYO', y: 0.3, fontSize: 130, fontId: 'archivo-black', color: '#F7F5EF', letterSpacing: 0.02 }),
         createTextLayer('front', { name: 'GRID', text: 'GRID', y: 0.46, fontSize: 130, fontId: 'archivo-black', color: '#C33FA0', letterSpacing: 0.02 }),
@@ -72,14 +74,16 @@ const TEMPLATES: TemplateSeed[] = [
     build: () => {
       const doc = createDefaultDocument('tshirt', 'Night Circuit')
       doc.garment.color = '#101012'
-      doc.garment.material = 'sport-poly'
+      doc.garment.material = 'jersey-knit'
+      doc.garment.variant = 'mens-regular-half'
       doc.layers = [
-        createShapeLayer('front', 'double-stripe', { name: 'Aero stripes', y: 0.2, scale: 0.66, color: '#FF5A1F', secondaryColor: '#F7F5EF' }),
-        createTextLayer('front', { name: 'NIGHT CIRCUIT', text: 'NIGHT', y: 0.4, fontSize: 120, fontId: 'bebas', color: '#F7F5EF', letterSpacing: 0.1, outline: { enabled: true, color: '#FF5A1F', width: 6 } }),
-        createTextLayer('front', { name: 'CIRCUIT', text: 'CIRCUIT', y: 0.53, fontSize: 120, fontId: 'bebas', color: '#FF5A1F', letterSpacing: 0.1 }),
+        createShapeLayer('front', 'double-stripe', { name: 'Aero stripes', y: 0.18, scale: 0.66, color: '#FF5A1F', secondaryColor: '#F7F5EF' }),
+        createTextLayer('front', { name: 'NIGHT', text: 'NIGHT', y: 0.36, fontSize: 120, fontId: 'bebas', color: '#F7F5EF', letterSpacing: 0.1, outline: { enabled: true, color: '#FF5A1F', width: 6 } }),
+        createTextLayer('front', { name: 'CIRCUIT', text: 'CIRCUIT', y: 0.5, fontSize: 120, fontId: 'bebas', color: '#FF5A1F', letterSpacing: 0.1 }),
         createShapeLayer('front', 'bolt', { name: 'Circuit bolt', x: 0.76, y: 0.62, scale: 0.42, color: '#F7F5EF' }),
         createNumberLayer('back', '27', { color: '#FF5A1F', outline: { enabled: true, color: '#F7F5EF', width: 7 } }),
         createTextLayer('back', { name: 'Circuit label', text: 'NIGHT CIRCUIT CREW', y: 0.16, fontSize: 30, fontId: 'inter', weight: 700, uppercase: true, letterSpacing: 0.26, color: '#858585' }),
+        createTextLayer('left-sleeve', { name: 'Sleeve mark', text: 'NC·27', y: 0.5, fontSize: 110, fontId: 'saira-condensed', weight: 700, uppercase: true, letterSpacing: 0.08, color: '#FF5A1F' }),
       ]
       return doc
     },
@@ -93,7 +97,8 @@ const TEMPLATES: TemplateSeed[] = [
     build: () => {
       const doc = createDefaultDocument('tshirt', 'Carbon')
       doc.garment.color = '#0B0B0C'
-      doc.garment.material = 'heavy'
+      doc.garment.material = 'heavy-cotton'
+      doc.garment.variant = 'womens-regular-half'
       doc.layers = [
         createShapeLayer('front', 'round-rect', { name: 'Carbon panel', y: 0.36, scale: 0.9, color: '#161618' }),
         createShapeLayer('front', 'ring', { name: 'Pulse ring', y: 0.36, scale: 0.42, color: '#64C466' }),
@@ -106,13 +111,14 @@ const TEMPLATES: TemplateSeed[] = [
   {
     slug: 'velocity',
     name: 'Velocity',
-    description: 'Crimson speed lines and italic race number.',
+    description: 'Crimson speed lines on a women\u2019s slim fit.',
     tags: ['racing', 'red', 'speed'],
     sortOrder: 5,
     build: () => {
       const doc = createDefaultDocument('tshirt', 'Velocity')
       doc.garment.color = '#F0EDE4'
-      doc.garment.material = 'sport-poly'
+      doc.garment.material = 'performance'
+      doc.garment.variant = 'womens-slim-half'
       doc.layers = [
         createShapeLayer('front', 'double-stripe', { name: 'Speed stripes', y: 0.3, scale: 0.7, rotation: 8, color: '#D8432B', secondaryColor: '#101012' }),
         createTextLayer('front', { name: 'VELOCITY', text: 'VELOCITY', y: 0.5, fontSize: 110, fontId: 'saira-condensed', weight: 900, italic: true, uppercase: true, letterSpacing: 0.04, color: '#101012' }),
@@ -131,10 +137,12 @@ const TEMPLATES: TemplateSeed[] = [
     build: () => {
       const doc = createDefaultDocument('tshirt', 'Trackline')
       doc.garment.color = '#1A1A1E'
-      doc.garment.material = 'cotton'
+      doc.garment.material = 'soft-cotton'
+      doc.garment.variant = 'mens-slim-half'
       doc.layers = [
         createShapeLayer('front', 'stripe-h', { name: 'Track line', y: 0.56, scale: 0.5, color: '#F7F5EF' }),
         createTextLayer('front', { name: 'TRACKLINE', text: 'TRACKLINE', y: 0.46, fontSize: 56, fontId: 'inter', weight: 700, uppercase: true, letterSpacing: 0.3, color: '#F7F5EF' }),
+        createTextLayer('right-chest', { name: 'Chest mark', text: 'TRK', y: 0.5, fontSize: 150, fontId: 'saira-condensed', weight: 900, uppercase: true, letterSpacing: 0.06, color: '#F7F5EF' }),
       ]
       return doc
     },
@@ -149,6 +157,7 @@ const TEMPLATES: TemplateSeed[] = [
       const doc = createDefaultDocument('tshirt', 'Midnight')
       doc.garment.color = '#16223D'
       doc.garment.material = 'cotton'
+      doc.garment.variant = 'mens-regular-full'
       doc.layers = [
         createShapeLayer('front', 'star', { name: 'Squad star', y: 0.32, scale: 0.4, color: '#C7CBD1' }),
         createTextLayer('front', { name: 'MIDNIGHT', text: 'MIDNIGHT', y: 0.5, fontSize: 96, fontId: 'saira-condensed', weight: 900, uppercase: true, letterSpacing: 0.08, color: '#F7F5EF' }),
@@ -166,7 +175,8 @@ const TEMPLATES: TemplateSeed[] = [
     build: () => {
       const doc = createDefaultDocument('tshirt', 'Monochrome')
       doc.garment.color = '#F7F5EF'
-      doc.garment.material = 'heavy'
+      doc.garment.material = 'washed'
+      doc.garment.variant = 'womens-oversized-half'
       doc.layers = [
         createTextLayer('front', { name: 'AFRA STACK', text: 'AFRA\nSTUDIO', y: 0.42, fontSize: 140, fontId: 'archivo-black', color: '#0D0D0E', letterSpacing: 0 }),
         createShapeLayer('back', 'stripe-v', { name: 'Back stripe', x: 0.5, y: 0.45, scale: 0.6, color: '#0D0D0E' }),

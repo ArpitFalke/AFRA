@@ -7,6 +7,7 @@ import { EditorShell } from '@/components/editor/EditorShell'
 import { AfraLogo } from '@/components/shared/AfraLogo'
 import { Spinner } from '@/components/shared/Spinner'
 import { useEditorStore } from '@/stores/editor-store'
+import { migrateDoc } from '@/lib/design/migrate'
 import type { DesignDocument } from '@/lib/design/types'
 
 export function EditorPageClient({
@@ -34,7 +35,7 @@ export function EditorPageClient({
         }
         if (!res.ok) throw new Error('Failed to load project')
         const body = (await res.json()) as { project: { name: string; designDocument: DesignDocument } }
-        load(projectId, body.project.name, body.project.designDocument)
+        load(projectId, body.project.name, migrateDoc(body.project.designDocument))
         setState('ready')
       } catch {
         setState('notfound')

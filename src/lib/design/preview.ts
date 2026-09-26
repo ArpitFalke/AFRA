@@ -1,10 +1,14 @@
-import { DESIGN_SPACE, type DesignDocument } from './types'
-import { renderSideToCanvas } from './render'
+import { getDims, parseVariantKey } from '@/lib/garment/params'
+import { drawGarmentSilhouette } from '@/lib/garment/silhouette'
+import { type DesignDocument } from './types'
+import { ZONES, type Zone } from '@/lib/garment/zones'
+import { renderZoneToCanvas } from './render'
 
 /**
- * Draws a flat shirt silhouette filled with the garment color and the front
- * design composited on top. Used for project thumbnails and template cards —
- * a real preview generated from the document, no placeholder images.
+ * Flat preview of a design: variant-accurate silhouette filled with the
+ * garment color, with the design composited on the chest. Used for project
+ * thumbnails, template cards and the hero fallback — a real render from
+ * the document, no placeholder images.
  */
 export function renderPreviewToCanvas(
   doc: DesignDocument,
@@ -15,71 +19,80 @@ export function renderPreviewToCanvas(
   canvas.width = size
   canvas.height = size
   const ctx = canvas.getContext('2d')!
-  const k = size / DESIGN_SPACE
+  const dims = getDims(parseVariantKey(doc.garment.variant))
 
-  // subtle backdrop
+  // backdrop
   const bg = ctx.createLinearGradient(0, 0, 0, size)
   bg.addColorStop(0, '#161619')
   bg.addColorStop(1, '#0D0D0E')
   ctx.fillStyle = bg
   ctx.fillRect(0, 0, size, size)
 
+  // zone art (front, or first non-empty zone as fallback)
+  const zoneArt = pickPreviewZone(doc)
+  let designCanvas: HTMLCanvasElement | null = null
+  if (zoneArt) {
+    designCanvas = document.createElement('canvas')
+    designCanvas.width = designCanvas.height = 1024
+    renderZoneToCanvas(designCanvas.getContext('2d')!, doc, zoneArt, 1024, images)
+  }
+
   ctx.save()
-  drawShirtSilhouette(ctx, size)
+  drawGarmentSilhouette(ctx, dims, size)
   ctx.fillStyle = doc.garment.color
   ctx.fill()
+  ctx.save()
   ctx.clip()
 
-  // design area: chest placement — narrower than the sleeve span, upper torso
-  const designSize = size * 0.46
-  const ox = (size - designSize) / 2
-  const oy = size * 0.17
-
-  const design = document.createElement('canvas')
-  design.width = design.height = 1024
-  const dctx = design.getContext('2d')!
-  renderSideToCanvas(dctx, doc, 'front', 1024, images)
-
-  ctx.save()
-  ctx.translate(ox, oy)
-  ctx.drawImage(design, 0, 0, designSize, designSize)
+  if (designCanvas) {
+    const rect = previewZoneRect(doc, zoneArt!, size, dims.shoulderY - dims.hemY)
+    if (rect) {
+      ctx.drawImage(designCanvas, rect.x, rect.y, rect.w, rect.h)
+    }
+  }
   ctx.restore()
   ctx.restore()
 
-  // outline — visible even on near-black garments
-  drawShirtSilhouette(ctx, size)
+  // outline
+  drawGarmentSilhouette(ctx, dims, size)
   ctx.strokeStyle = 'rgba(247, 245, 239, 0.28)'
-  ctx.lineWidth = 1.5 * k
+  ctx.lineWidth = Math.max(1, size * 0.004)
   ctx.stroke()
-  void doc
   return canvas
 }
 
-/**
- * T-shirt front silhouette path in a size×size box (centered, ~66% height).
- * Callers can fill, clip or stroke the current path.
- */
-export function drawShirtSilhouette(ctx: CanvasRenderingContext2D, size: number) {
-  const w = size * 0.66
-  const x0 = (size - w) / 2
-  const y0 = size * 0.14
-  const u = (v: number) => x0 + (v / 1000) * w // 1000-unit silhouette space
-  const t = (v: number) => y0 + (v / 1000) * w
+function pickPreviewZone(doc: DesignDocument): Zone | null {
+  const order: Zone[] = ['front', 'back', 'left-chest', 'right-chest', 'left-sleeve', 'right-sleeve']
+  for (const z of order) {
+    if (doc.layers.some((l) => l.zone === z && l.visible)) return z
+  }
+  return null
+}
 
-  ctx.beginPath()
-  ctx.moveTo(u(340), t(20)) // left shoulder top
-  ctx.lineTo(u(430), t(0)) // neck left
-  ctx.quadraticCurveTo(u(500), t(60), u(570), t(0)) // neck curve
-  ctx.lineTo(u(660), t(20)) // right shoulder
-  ctx.lineTo(u(830), t(130)) // sleeve out
-  ctx.lineTo(u(890), t(280)) // sleeve cuff outer
-  ctx.lineTo(u(700), t(360)) // armpit
-  ctx.lineTo(u(705), t(560)) // waist right
-  ctx.quadraticCurveTo(u(706), t(600), u(680), t(610))
-  ctx.lineTo(u(320), t(610)) // hem
-  ctx.quadraticCurveTo(u(294), t(600), u(295), t(560))
-  ctx.lineTo(u(300), t(360)) // armpit left
-  ctx.lineTo(u(110), t(280)) // sleeve cuff outer
-  ctx.lineTo(u(170), t(130)) // sleeve top
-  ctx.closePath()
+/**
+ * Approximate screen rect for a zone on the flat preview (linear
+ * projection of the UV space onto the silhouette box).
+ */
+function previewZoneRect(doc: DesignDocument, zone: Zone, size: number, bodyH: number) {
+  const def = ZONES[zone]
+  if (def.part !== 'torso') return null
+  const dims = getDims(parseVariantKey(doc.garment.variant))
+  const k = size / (bodyH * 1.12)
+  const cx = size / 2
+  const chestHalfW = dims.chestHalfWidth * 1.02
+  const uMid = (def.u0 + def.u1) / 2
+  const xWorld = (uMid - 0.5) * 2 * chestHalfW
+  const wWorld = (def.u1 - def.u0) * 2 * chestHalfW
+  const yTopWorld = dims.hemY + bodyH * def.v1
+  const hWorld = bodyH * (def.v1 - def.v0)
+  return {
+    x: cx + xWorld * k - (wWorld * k) / 2,
+    y: (dims.shoulderY - yTopWorld) * k + size * 0.06,
+    w: wWorld * k,
+    h: hWorld * k,
+  }
+}
+
+export function drawShirtSilhouetteForDoc(doc: DesignDocument, ctx: CanvasRenderingContext2D, size: number) {
+  drawGarmentSilhouette(ctx, getDims(parseVariantKey(doc.garment.variant)), size)
 }

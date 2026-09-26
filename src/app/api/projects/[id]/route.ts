@@ -16,7 +16,7 @@ const designDocumentSchema = z.object({
     createdAt: z.string(),
     updatedAt: z.string(),
   }),
-  garment: z.object({ color: z.string(), material: z.string() }),
+  garment: z.object({ color: z.string(), material: z.string(), variant: z.string().optional(), opacity: z.number().optional() }).passthrough(),
   layers: z.array(
     z.object({
       id: z.string(),

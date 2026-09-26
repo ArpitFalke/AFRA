@@ -1,5 +1,3 @@
-import type { MaterialId } from './types'
-
 export interface FontDef {
   id: string
   name: string
@@ -73,49 +71,6 @@ export async function ensureFontsReady(fontIds: string[], weights: number[] = [4
       )
     }),
   )
-}
-
-export interface MaterialDef {
-  id: MaterialId
-  name: string
-  description: string
-  roughness: number
-  metalness: number
-}
-
-export const MATERIALS: MaterialDef[] = [
-  {
-    id: 'cotton',
-    name: 'Cotton Jersey',
-    description: 'Classic soft knit with a matte finish.',
-    roughness: 0.94,
-    metalness: 0.0,
-  },
-  {
-    id: 'sport-poly',
-    name: 'Sport Poly',
-    description: 'Smooth performance fabric with a slight sheen.',
-    roughness: 0.62,
-    metalness: 0.04,
-  },
-  {
-    id: 'heavy',
-    name: 'Heavyweight',
-    description: 'Thick premium jersey, deep matte look.',
-    roughness: 0.99,
-    metalness: 0.0,
-  },
-  {
-    id: 'vintage',
-    name: 'Vintage Wash',
-    description: 'Soft washed cotton with muted tone.',
-    roughness: 0.88,
-    metalness: 0.0,
-  },
-]
-
-export function getMaterial(id: MaterialId): MaterialDef {
-  return MATERIALS.find((m) => m.id === id) ?? MATERIALS[0]
 }
 
 export const PALETTES: { name: string; colors: string[] }[] = [

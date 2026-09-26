@@ -16,7 +16,7 @@ export function HeroFallback() {
       projectType: 'tshirt',
       version: 1,
       metadata: { title: 'AFRA', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      garment: { color: '#1A1A1E', material: 'heavy' },
+      garment: { color: '#1A1A1E', material: 'heavy-cotton', variant: 'mens-regular-half', opacity: 1 },
       layers: [
         createShapeLayer('front', 'double-stripe', { name: 'Chest stripes', y: 0.2, scale: 0.6, color: '#FF5A1F', secondaryColor: '#F7F5EF' }),
         createTextLayer('front', { name: 'AFRA', text: 'AFRA', y: 0.44, fontSize: 170, fontId: 'bebas', color: '#F7F5EF', letterSpacing: 0.18 }),

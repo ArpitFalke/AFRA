@@ -8,7 +8,8 @@ import { Segmented } from '@/components/shared/Controls'
 import { getExporter } from '@/components/three/ExportBridge'
 import { isWebGLAvailable } from '@/components/three/webgl'
 import { useEditorStore } from '@/stores/editor-store'
-import { renderSideToCanvas } from '@/lib/design/render'
+import { renderZoneToCanvas } from '@/lib/design/render'
+import type { Zone } from '@/lib/garment/zones'
 import { ensureFontsReady } from '@/lib/design/fonts'
 
 type Mode = 'render' | 'artwork'
@@ -32,7 +33,7 @@ export function ExportDialog({ open, onClose }: { open: boolean; onClose: () => 
   const [res, setRes] = useState<(typeof RES_PRESETS)[number]['id']>('2k')
   const [bg, setBg] = useState<BgMode>('scene')
   const [customBg, setCustomBg] = useState('#0D0D0E')
-  const [side, setSide] = useState<'front' | 'back' | 'both'>('front')
+  const [side, setSide] = useState<Zone | 'both'>('front')
   const [format, setFormat] = useState<'png' | 'jpg'>('png')
   const [busy, setBusy] = useState(false)
 
@@ -104,30 +105,30 @@ export function ExportDialog({ open, onClose }: { open: boolean; onClose: () => 
         return
       }
       await ensureFontsReady(['inter', 'bebas', 'saira-condensed', 'archivo-black'])
-      const sides = side === 'both' ? (['front', 'back'] as const) : ([side] as const)
+      const zones: Zone[] = side === 'both' ? ['front', 'back'] : [side]
       const size = Math.min(4096, px())
-      for (const s of sides) {
+      const images: Record<string, HTMLImageElement> = {}
+      await Promise.all(
+        doc.layers
+          .filter((l) => l.type === 'graphic')
+          .map(async (l) => {
+            const src = (l as { src: string }).src
+            const img = new Image()
+            img.crossOrigin = 'anonymous'
+            await new Promise<void>((resolve) => {
+              img.onload = () => resolve()
+              img.onerror = () => resolve()
+              img.src = src
+            })
+            if (img.naturalWidth) images[src] = img
+          }),
+      )
+      for (const z of zones) {
         const canvas = document.createElement('canvas')
         canvas.width = canvas.height = size
         const ctx = canvas.getContext('2d')!
-        const images: Record<string, HTMLImageElement> = {}
-        await Promise.all(
-          doc.layers
-            .filter((l) => l.type === 'graphic')
-            .map(async (l) => {
-              const src = (l as { src: string }).src
-              const img = new Image()
-              img.crossOrigin = 'anonymous'
-              await new Promise<void>((resolve) => {
-                img.onload = () => resolve()
-                img.onerror = () => resolve()
-                img.src = src
-              })
-              if (img.naturalWidth) images[src] = img
-            }),
-        )
-        renderSideToCanvas(ctx, doc, s, size, images)
-        download(canvas.toDataURL('image/png'), filename(`artwork-${s}-${size}px`, 'png'))
+        renderZoneToCanvas(ctx, doc, z, size, images)
+        download(canvas.toDataURL('image/png'), filename(`artwork-${z}-${size}px`, 'png'))
       }
       await recordComplete('png')
     } catch (err) {
@@ -206,12 +207,16 @@ export function ExportDialog({ open, onClose }: { open: boolean; onClose: () => 
         </div>
       ) : (
         <div className="mt-4">
-          <div className="label mb-1.5">Side</div>
+          <div className="label mb-1.5">Zone</div>
           <Segmented
             options={[
               { value: 'front', label: 'Front' },
               { value: 'back', label: 'Back' },
-              { value: 'both', label: 'Both' },
+              { value: 'left-chest', label: 'L Chest' },
+              { value: 'right-chest', label: 'R Chest' },
+              { value: 'left-sleeve', label: 'L Sleeve' },
+              { value: 'right-sleeve', label: 'R Sleeve' },
+              { value: 'both', label: 'F + B' },
             ]}
             value={side}
             onChange={(v) => setSide(v as typeof side)}

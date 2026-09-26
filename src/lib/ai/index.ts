@@ -18,10 +18,27 @@ export interface ImageGenerationInput {
   aspectRatio?: string
 }
 
+/** A generated t-shirt graphic, ready to persist as an asset. */
+export interface GeneratedGraphic {
+  name: string
+  mime: 'image/svg+xml' | 'image/png'
+  /** File contents (SVG markup or base64 for PNG). */
+  data: string
+}
+
+export interface GraphicGenerationInput {
+  prompt: string
+  style?: string
+  variations?: number
+  /** Current garment color, so generated art contrasts with the shirt. */
+  garmentColor?: string
+}
+
 export interface AIProvider {
   readonly id: string
   readonly supportsImageGeneration: boolean
   generateDesign(input: DesignGenerationInput): Promise<GeneratedDesign>
+  generateGraphics?(input: GraphicGenerationInput): Promise<GeneratedGraphic[]>
   generateImage?(input: ImageGenerationInput): Promise<{ dataUrl: string }>
 }
 

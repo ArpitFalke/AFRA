@@ -1,4 +1,5 @@
 import type { AIProvider, DesignGenerationInput } from './index'
+import { generateGraphicSVGs } from './graphic-generator'
 import { createNumberLayer, createShapeLayer, createTextLayer } from '@/lib/design/defaults'
 import type { GeneratedDesign, ShapeLayer, TextLayer } from '@/lib/design/types'
 
@@ -247,6 +248,15 @@ export class LocalDesignProvider implements AIProvider {
       layers,
       summary: `Applied ${layers.length} editable layers — base ${base}, accent ${accent}. Adjust anything in the editor.`,
     }
+  }
+
+  async generateGraphics(input: { prompt: string; style?: string; variations?: number; garmentColor?: string }) {
+    const count = Math.min(4, Math.max(2, input.variations ?? 3))
+    return generateGraphicSVGs(input.prompt, count, input.garmentColor).map((g) => ({
+      name: g.name,
+      mime: 'image/svg+xml' as const,
+      data: g.svg,
+    }))
   }
 
   async generateImage(): Promise<{ dataUrl: string }> {

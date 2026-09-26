@@ -9,8 +9,8 @@ import {
   type DesignLayer,
   type GeneratedDesign,
   type LayerType,
-  type Side,
 } from '@/lib/design/types'
+import { ZONES, type Zone } from '@/lib/garment/zones'
 
 export type SaveState = 'saved' | 'saving' | 'unsaved' | 'error'
 
@@ -21,7 +21,7 @@ interface EditorState {
   loaded: boolean
 
   selectedLayerId: string | null
-  activeSide: Side
+  activeZone: Zone
   view: CameraView
   zoomPulse: { dir: 1 | -1; n: number } | null
   presenting: boolean
@@ -35,7 +35,7 @@ interface EditorState {
 
   load: (projectId: string, projectName: string, doc: DesignDocument) => void
   select: (id: string | null) => void
-  setSide: (side: Side) => void
+  setZone: (zone: Zone) => void
   setView: (view: CameraView) => void
   zoom: (dir: 1 | -1) => void
   setPresenting: (v: boolean) => void
@@ -64,9 +64,9 @@ function baseDoc(): DesignDocument {
   return {
     id: '',
     projectType: 'tshirt',
-    version: 1,
+    version: 2,
     metadata: { title: '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    garment: { color: '#141416', material: 'cotton' },
+    garment: { color: '#141416', material: 'cotton', variant: 'mens-regular-half', opacity: 1 },
     layers: [],
     scene: { background: 'studio', customBackground: '#0D0D0E', floor: true },
     lighting: { preset: 'studio', intensity: 1, shadow: true },
@@ -96,8 +96,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   loaded: false,
 
   selectedLayerId: null,
-  activeSide: 'front',
-  view: 'orbit',
+  activeZone: 'front',
+  view: 'product',
   zoomPulse: null,
   presenting: false,
 
@@ -113,7 +113,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   select: (id) => set({ selectedLayerId: id }),
 
-  setSide: (side) => set({ activeSide: side, view: side === 'front' ? 'front' : 'back', selectedLayerId: null }),
+  setZone: (zone) =>
+    set((s) => ({
+      activeZone: zone,
+      view: ZONES[zone].view,
+      ...(s.selectedLayerId && s.doc.layers.find((l) => l.id === s.selectedLayerId)?.zone !== zone
+        ? { selectedLayerId: null }
+        : {}),
+    })),
 
   setView: (view) => set({ view }),
   zoom: (dir) => set({ zoomPulse: { dir, n: (get().zoomPulse?.n ?? 0) + 1 } }),
@@ -123,7 +130,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set((s) => ({
       ...withHistory(s, { ...s.doc, layers: [...s.doc.layers, layer] }),
       selectedLayerId: layer.id,
-      activeSide: layer.side,
+      activeZone: layer.zone,
+      view: ZONES[layer.zone].view,
     })),
 
   updateLayer: (id, patch, history = 'commit') =>
@@ -185,8 +193,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return { ...withHistory(s, doc), selectedLayerId: null }
     }),
 
-  pushHistory: () =>
-    set((s) => ({ past: [...s.past.slice(-MAX_HISTORY), structuredClone(s.doc)], future: [] })),
+  pushHistory: () => set((s) => ({ past: [...s.past.slice(-MAX_HISTORY), structuredClone(s.doc)], future: [] })),
 
   undo: () =>
     set((s) => {

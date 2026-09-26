@@ -6,14 +6,17 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { Vector3 } from 'three'
 import { useEditorStore } from '@/stores/editor-store'
 
-export type CameraView = 'front' | 'back' | 'left' | 'right' | 'top' | 'orbit'
+export type CameraView = 'front' | 'back' | 'left' | 'right' | 'top' | 'product' | 'closeup' | 'orbit'
 
+/** Camera presets: Front, Back, Left, Right, Top, Product (3/4), Close-up, 360°. */
 export const VIEW_POSITIONS: Record<CameraView, [number, number, number]> = {
-  front: [0, 0.15, 3.1],
-  back: [0, 0.15, -3.1],
-  left: [-3.1, 0.15, 0],
-  right: [3.1, 0.15, 0],
-  top: [0, 3.1, 0.001],
+  front: [0, 0.14, 2.75],
+  back: [0, 0.14, -2.75],
+  left: [2.75, 0.14, 0],
+  right: [-2.75, 0.14, 0],
+  top: [0, 3.0, 0.01],
+  product: [1.95, 0.4, 2.15],
+  closeup: [0.32, 0.45, 1.5],
   orbit: [1.7, 0.55, 2.5],
 }
 
@@ -40,7 +43,7 @@ export function CameraRig({ controlsRef }: { controlsRef: React.RefObject<OrbitC
     lastPulse.current = zoomPulse.n
     const offset = camera.position.clone().sub(TARGET)
     const factor = zoomPulse.dir === 1 ? 0.82 : 1.22
-    const nextLen = Math.min(8, Math.max(1.15, offset.length() * factor))
+    const nextLen = Math.min(8, Math.max(1.05, offset.length() * factor))
     camera.position.copy(TARGET.clone().add(offset.setLength(nextLen)))
   }, [zoomPulse, camera])
 

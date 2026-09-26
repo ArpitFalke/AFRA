@@ -10,16 +10,21 @@ import {
   SHAPE_LABELS,
 } from '@/lib/design/defaults'
 import { FONTS } from '@/lib/design/fonts'
+import { MATERIAL_PRESETS } from '@/lib/garment/materials'
+import { parseVariantKey, variantKey } from '@/lib/garment/params'
+import { ZONES, ZONE_IDS, type Zone } from '@/lib/garment/zones'
 import type { PatternPreset, ShapePreset } from '@/lib/design/types'
-import { useEditorStore } from '@/stores/editor-store'
+import { useEditorStore, LAYER_TYPE_LABEL } from '@/stores/editor-store'
 import { toast } from '@/components/shared/Toast'
 import { Spinner } from '@/components/shared/Spinner'
 import { useAssets, type AssetItem } from '@/hooks/useAssets'
+import { VariantSelector } from '@/components/shared/VariantSelector'
 
-export type PanelId = 'templates' | 'objects' | 'text' | 'graphics' | 'patterns' | 'layers' | null
+export type PanelId = 'templates' | 'garment' | 'objects' | 'text' | 'graphics' | 'patterns' | 'layers' | null
 
 const RAIL: { id: Exclude<PanelId, null>; label: string; icon: React.ReactNode }[] = [
   { id: 'templates', label: 'Templates', icon: <IconTemplates /> },
+  { id: 'garment', label: 'Garment', icon: <IconShirt /> },
   { id: 'objects', label: 'Objects', icon: <IconShapes /> },
   { id: 'text', label: 'Text', icon: <IconText /> },
   { id: 'graphics', label: 'Graphics', icon: <IconImage /> },
@@ -27,7 +32,17 @@ const RAIL: { id: Exclude<PanelId, null>; label: string; icon: React.ReactNode }
   { id: 'layers', label: 'Layers', icon: <IconLayers /> },
 ]
 
-export function LeftToolbar({ panel, setPanel, onClose }: { panel: PanelId; setPanel: (p: PanelId) => void; onClose: () => void }) {
+export function LeftToolbar({
+  panel,
+  setPanel,
+  onClose,
+  onOpenAIGraphic,
+}: {
+  panel: PanelId
+  setPanel: (p: PanelId) => void
+  onClose: () => void
+  onOpenAIGraphic: () => void
+}) {
   return (
     <div className="flex h-full">
       <nav className="flex w-14 shrink-0 flex-col items-center gap-1 border-r border-afra-border bg-afra-panel py-2" aria-label="Design tools">
@@ -35,7 +50,7 @@ export function LeftToolbar({ panel, setPanel, onClose }: { panel: PanelId; setP
           <button
             key={item.id}
             onClick={() => (panel === item.id ? onClose() : setPanel(item.id))}
-            className={`flex h-12 w-12 flex-col items-center justify-center gap-0.5 rounded-lg text-[9px] font-medium transition-colors duration-150 ${
+            className={`flex h-11 w-12 flex-col items-center justify-center gap-0.5 rounded-lg text-[9px] font-medium transition-colors duration-150 ${
               panel === item.id ? 'bg-afra-surface text-afra-orange' : 'text-afra-muted hover:bg-afra-hover hover:text-afra-white'
             }`}
             aria-label={item.label}
@@ -49,9 +64,10 @@ export function LeftToolbar({ panel, setPanel, onClose }: { panel: PanelId; setP
       {panel && (
         <div className="absolute inset-y-0 left-14 z-30 w-60 overflow-y-auto border-r border-afra-border bg-afra-panel/98 p-3 backdrop-blur lg:static lg:z-auto lg:w-64 lg:bg-afra-panel">
           {panel === 'templates' && <TemplatesPanel />}
+          {panel === 'garment' && <GarmentPanel />}
           {panel === 'objects' && <ObjectsPanel />}
           {panel === 'text' && <TextPanel />}
-          {panel === 'graphics' && <GraphicsPanel />}
+          {panel === 'graphics' && <GraphicsPanel onOpenAIGraphic={onOpenAIGraphic} />}
           {panel === 'patterns' && <PatternsPanel />}
           {panel === 'layers' && <LayersPanel />}
         </div>
@@ -82,9 +98,7 @@ interface TemplateRow {
 
 function TemplatesPanel() {
   const [templates, setTemplates] = useState<TemplateRow[] | null>(null)
-  const activeSide = useEditorStore((s) => s.activeSide)
   const replaceDoc = useEditorStore((s) => s.replaceDoc)
-  const setSide = useEditorStore((s) => s.setSide)
 
   useEffect(() => {
     void fetch('/api/templates')
@@ -97,7 +111,6 @@ function TemplatesPanel() {
     try {
       const doc = JSON.parse(t.designDocument)
       replaceDoc(doc)
-      setSide(activeSide)
       toast.success(`Applied “${t.name}” — undo with Ctrl+Z if it replaced something`)
     } catch {
       toast.error('Template is invalid.')
@@ -131,21 +144,49 @@ function TemplatesPanel() {
   )
 }
 
+/* ── Garment (model selector + materials) ──────────────────────────── */
+
+function GarmentPanel() {
+  const garment = useEditorStore((s) => s.doc.garment)
+  const setGarment = useEditorStore((s) => s.setGarment)
+  const variant = parseVariantKey(garment.variant)
+
+  return (
+    <div>
+      <PanelTitle hint="The 3D garment is rebuilt for every selection — fit, sleeves and neckline genuinely change.">T-Shirt Model</PanelTitle>
+      <VariantSelector value={variant} onChange={(v) => setGarment({ variant: variantKey(v) })} />
+      <div className="mt-5">
+        <PanelTitle hint="Real cloth shading per fabric.">Material</PanelTitle>
+        <select className="input cursor-pointer text-xs" value={garment.material} onChange={(e) => setGarment({ material: e.target.value })}>
+          {MATERIAL_PRESETS.map((m) => (
+            <option key={m.id} value={m.id} className="bg-afra-panel">
+              {m.name}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1.5 text-[11px] leading-snug text-afra-muted">
+          {MATERIAL_PRESETS.find((m) => m.id === garment.material)?.description}
+        </p>
+      </div>
+    </div>
+  )
+}
+
 /* ── Objects (shapes) ──────────────────────────────────────────────── */
 
 const SHAPE_ORDER: ShapePreset[] = ['stripe-h', 'stripe-v', 'double-stripe', 'chevron', 'ring', 'circle', 'round-rect', 'triangle', 'star', 'bolt']
 
 function ObjectsPanel() {
   const addLayer = useEditorStore((s) => s.addLayer)
-  const activeSide = useEditorStore((s) => s.activeSide)
+  const activeZone = useEditorStore((s) => s.activeZone)
   return (
     <div>
-      <PanelTitle hint="Click to place on the current side, then drag it into position on the model.">Objects</PanelTitle>
+      <PanelTitle hint={`Click to place on ${ZONES[activeZone].label}, then drag it into position on the model.`}>Objects</PanelTitle>
       <div className="grid grid-cols-2 gap-1.5">
         {SHAPE_ORDER.map((preset) => (
           <button
             key={preset}
-            onClick={() => addLayer(createShapeLayer(activeSide, preset))}
+            onClick={() => addLayer(createShapeLayer(activeZone, preset))}
             className="rounded-lg border border-afra-border bg-afra-surface px-2 py-2.5 text-left text-[11px] leading-tight text-afra-white/85 transition-colors hover:border-afra-orange/60 hover:bg-afra-hover"
           >
             <ShapeGlyph preset={preset} />
@@ -184,7 +225,7 @@ function ShapeGlyph({ preset }: { preset: ShapePreset }) {
 
 function TextPanel() {
   const addLayer = useEditorStore((s) => s.addLayer)
-  const activeSide = useEditorStore((s) => s.activeSide)
+  const activeZone = useEditorStore((s) => s.activeZone)
   const [text, setText] = useState('')
   const [font, setFont] = useState('bebas')
   const [color, setColor] = useState('#F7F5EF')
@@ -196,7 +237,7 @@ function TextPanel() {
       return
     }
     addLayer(
-      createTextLayer(activeSide, {
+      createTextLayer(activeZone, {
         text: value,
         name: value.length > 18 ? `${value.slice(0, 18)}…` : value,
         fontId: font,
@@ -214,20 +255,14 @@ function TextPanel() {
       toast.error('Enter 1–3 digits for a race number.')
       return
     }
-    addLayer(createNumberLayer(activeSide, value, { color }))
+    addLayer(createNumberLayer(activeZone, value, { color }))
     setText('')
   }
 
   return (
     <div>
-      <PanelTitle hint="Added at chest center — drag on the model to place it.">Text</PanelTitle>
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Your text or race number…"
-        rows={2}
-        className="input resize-none text-sm"
-      />
+      <PanelTitle hint={`Added to ${ZONES[activeZone].label} — drag on the model to place it.`}>Text</PanelTitle>
+      <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Your text or race number…" rows={2} className="input resize-none text-sm" />
       <div className="mt-2">
         <div className="label mb-1">Font</div>
         <select className="input cursor-pointer text-xs" value={font} onChange={(e) => setFont(e.target.value)}>
@@ -254,12 +289,12 @@ function TextPanel() {
   )
 }
 
-/* ── Graphics (assets) ─────────────────────────────────────────────── */
+/* ── Graphics (assets + AI) ────────────────────────────────────────── */
 
-function GraphicsPanel() {
+function GraphicsPanel({ onOpenAIGraphic }: { onOpenAIGraphic: () => void }) {
   const { assets, loading, uploading, upload, remove, rename } = useAssets()
   const addLayer = useEditorStore((s) => s.addLayer)
-  const activeSide = useEditorStore((s) => s.activeSide)
+  const activeZone = useEditorStore((s) => s.activeZone)
   const fileRef = useRef<HTMLInputElement>(null)
 
   async function onUpload(files: FileList | null) {
@@ -276,7 +311,7 @@ function GraphicsPanel() {
     const img = new Image()
     img.onload = () => {
       addLayer(
-        createGraphicLayer(activeSide, {
+        createGraphicLayer(activeZone, {
           id: asset.id,
           src: asset.src,
           aspect: img.naturalWidth / Math.max(1, img.naturalHeight),
@@ -289,14 +324,11 @@ function GraphicsPanel() {
 
   return (
     <div>
-      <PanelTitle hint="Upload PNG, JPG, WEBP or SVG logos and artwork, then click to place.">Graphics & Decals</PanelTitle>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/png,image/jpeg,image/webp,image/svg+xml"
-        className="hidden"
-        onChange={(e) => void onUpload(e.target.files)}
-      />
+      <PanelTitle hint={`Upload artwork or generate it with AI, then place it on ${ZONES[activeZone].label}.`}>Graphics & Decals</PanelTitle>
+      <button onClick={onOpenAIGraphic} className="btn-primary mb-2 w-full py-2 text-xs">
+        ✦ Create with AI
+      </button>
+      <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="hidden" onChange={(e) => void onUpload(e.target.files)} />
       <button onClick={() => fileRef.current?.click()} disabled={uploading} className="btn-outline mb-3 w-full py-2 text-xs">
         {uploading ? (
           <>
@@ -351,15 +383,15 @@ const PATTERN_PRESETS: PatternPreset[] = ['stripes', 'checker', 'dots', 'grid', 
 
 function PatternsPanel() {
   const addLayer = useEditorStore((s) => s.addLayer)
-  const activeSide = useEditorStore((s) => s.activeSide)
+  const activeZone = useEditorStore((s) => s.activeZone)
   return (
     <div>
-      <PanelTitle hint="Patterns fill the design area of the current side. Tune colors and density in Properties.">Patterns</PanelTitle>
+      <PanelTitle hint={`Patterns fill the ${ZONES[activeZone].label} area. Tune colors and density in Properties.`}>Patterns</PanelTitle>
       <div className="grid grid-cols-2 gap-1.5">
         {PATTERN_PRESETS.map((p) => (
           <button
             key={p}
-            onClick={() => addLayer(createPatternLayer(activeSide, p, { name: `${p[0].toUpperCase()}${p.slice(1)}` }))}
+            onClick={() => addLayer(createPatternLayer(activeZone, p, { name: `${p[0].toUpperCase()}${p.slice(1)}` }))}
             className="rounded-lg border border-afra-border bg-afra-surface px-2 py-3 text-left text-[11px] capitalize text-afra-white/85 transition-colors hover:border-afra-orange/60 hover:bg-afra-hover"
           >
             <PatternGlyph preset={p} />
@@ -397,7 +429,7 @@ function PatternGlyph({ preset }: { preset: PatternPreset }) {
   )
 }
 
-/* ── Layers ────────────────────────────────────────────────────────── */
+/* ── Layers (tree) ─────────────────────────────────────────────────── */
 
 function LayersPanel() {
   const layers = useEditorStore((s) => s.doc.layers)
@@ -407,60 +439,89 @@ function LayersPanel() {
   const deleteLayer = useEditorStore((s) => s.deleteLayer)
   const duplicateLayer = useEditorStore((s) => s.duplicateLayer)
   const reorderLayer = useEditorStore((s) => s.reorderLayer)
+  const setZone = useEditorStore((s) => s.setZone)
 
   const ordered = [...layers].reverse()
 
   return (
     <div>
-      <PanelTitle hint="Top of the list draws in front. Double-click a name to rename.">Layers</PanelTitle>
-      {ordered.length === 0 && <p className="py-3 text-[11px] text-afra-muted">No layers yet. Add text, graphics or patterns.</p>}
-      <div className="flex flex-col gap-0.5">
-        {ordered.map((layer) => {
-          const selected = layer.id === selectedLayerId
-          return (
-            <div
-              key={layer.id}
-              className={`group flex items-center gap-1 rounded-md border px-2 py-1.5 transition-colors ${
-                selected ? 'border-afra-orange/70 bg-afra-surface' : 'border-transparent hover:bg-afra-hover'
-              }`}
-            >
-              <button
-                onClick={() => select(layer.id)}
-                className="flex min-w-0 flex-1 items-center gap-2 text-left"
-                title={`Select ${layer.name}`}
-              >
-                <span className={`text-[9px] font-bold ${layer.side === 'front' ? 'text-afra-orange' : 'text-afra-muted'}`}>{layer.side === 'front' ? 'F' : 'B'}</span>
-                <span className={`truncate text-[11px] ${layer.visible ? 'text-afra-white/85' : 'text-afra-muted line-through'}`}>
-                  {layer.type === 'text' && layer.text ? layer.text : layer.name}
-                </span>
-              </button>
-              <span className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-                <IconBtn label="Raise" onClick={() => reorderLayer(layer.id, 'up')}>↑</IconBtn>
-                <IconBtn label="Lower" onClick={() => reorderLayer(layer.id, 'down')}>↓</IconBtn>
-                <IconBtn label="Duplicate" onClick={() => duplicateLayer(layer.id)}>⧉</IconBtn>
-                <IconBtn label="Delete" onClick={() => deleteLayer(layer.id)} danger>✕</IconBtn>
-              </span>
-              <button
-                onClick={() => updateLayer(layer.id, { visible: !layer.visible })}
-                className="ml-0.5 text-afra-muted hover:text-afra-white"
-                aria-label={layer.visible ? 'Hide layer' : 'Show layer'}
-                title={layer.visible ? 'Hide' : 'Show'}
-              >
-                {layer.visible ? <IconEye /> : <IconEyeOff />}
-              </button>
-              <button
-                onClick={() => updateLayer(layer.id, { locked: !layer.locked })}
-                className="text-afra-muted hover:text-afra-white"
-                aria-label={layer.locked ? 'Unlock layer' : 'Lock layer'}
-                title={layer.locked ? 'Unlock' : 'Lock'}
-              >
-                {layer.locked ? <IconLock /> : <IconUnlock />}
-              </button>
-            </div>
-          )
-        })}
+      <PanelTitle hint="Top of the list draws in front. Select a layer to reveal its controls.">Layers</PanelTitle>
+      <div className="mb-1 flex items-center gap-2 rounded-md bg-afra-surface px-2 py-1.5 text-[11px] font-semibold text-afra-white/90">
+        <IconShirtSmall /> T-Shirt
+      </div>
+      <div className="ml-3 border-l border-afra-border pl-2">
+        <div className="mb-1 flex items-center gap-2 rounded-md px-2 py-1 text-[11px] text-afra-muted">
+          <span className="h-1.5 w-1.5 rounded-full bg-afra-muted" /> Base Fabric
+        </div>
+        {ordered.length === 0 && <p className="py-3 text-[11px] text-afra-muted">No layers yet. Add text, graphics or patterns.</p>}
+        <div className="flex flex-col gap-0.5">
+          {ordered.map((layer) => {
+            const selected = layer.id === selectedLayerId
+            return (
+              <div key={layer.id}>
+                <button
+                  onClick={() => {
+                    select(layer.id)
+                    setZone(layer.zone)
+                  }}
+                  className={`flex w-full items-center gap-1.5 rounded-md border px-2 py-1.5 text-left transition-colors ${
+                    selected ? 'border-afra-orange/70 bg-afra-surface' : 'border-transparent hover:bg-afra-hover'
+                  }`}
+                  title={`Select ${layer.name}`}
+                >
+                  <span className={`text-[9px] font-bold ${layer.zone === 'back' ? 'text-afra-muted' : 'text-afra-orange'}`}>{ZONES[layer.zone].short}</span>
+                  <span className={`min-w-0 flex-1 truncate text-[11px] ${layer.visible ? 'text-afra-white/85' : 'text-afra-muted line-through'}`}>
+                    {layer.type === 'text' && layer.text ? layer.text : layer.name}
+                  </span>
+                  <span className="text-[8px] uppercase tracking-wide text-afra-muted/70">{LAYER_TYPE_LABEL[layer.type]}</span>
+                </button>
+                {selected && (
+                  <div className="mb-1 ml-2 flex items-center gap-0.5 border-l border-afra-border pl-2 pt-1">
+                    <IconBtn label="Raise" onClick={() => reorderLayer(layer.id, 'up')}>↑</IconBtn>
+                    <IconBtn label="Lower" onClick={() => reorderLayer(layer.id, 'down')}>↓</IconBtn>
+                    <IconBtn label="Duplicate" onClick={() => duplicateLayer(layer.id)}>⧉</IconBtn>
+                    <IconBtn label="Delete" onClick={() => deleteLayer(layer.id)} danger>✕</IconBtn>
+                    <button onClick={() => updateLayer(layer.id, { visible: !layer.visible })} className="px-1 text-[10px] text-afra-muted hover:text-afra-white" aria-label={layer.visible ? 'Hide layer' : 'Show layer'} title={layer.visible ? 'Hide' : 'Show'}>
+                      {layer.visible ? '◉' : '◌'}
+                    </button>
+                    <button onClick={() => updateLayer(layer.id, { locked: !layer.locked })} className="px-1 text-[10px] text-afra-muted hover:text-afra-white" aria-label={layer.locked ? 'Unlock layer' : 'Lock layer'} title={layer.locked ? 'Unlock' : 'Lock'}>
+                      {layer.locked ? '▣' : '▢'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+      <div className="mt-3 border-t border-afra-border pt-2">
+        <div className="label mb-1.5">Active placement zone</div>
+        <div className="grid grid-cols-3 gap-1">
+          {ZONE_IDS.map((z) => (
+            <ZoneChip key={z} zone={z as Zone} />
+          ))}
+        </div>
       </div>
     </div>
+  )
+}
+
+function ZoneChip({ zone }: { zone: Zone }) {
+  const activeZone = useEditorStore((s) => s.activeZone)
+  const setZone = useEditorStore((s) => s.setZone)
+  const count = useEditorStore((s) => s.doc.layers.filter((l) => l.zone === zone).length)
+  const active = activeZone === zone
+  return (
+    <button
+      onClick={() => setZone(zone)}
+      className={`rounded-md border px-1 py-1 text-[9px] font-medium transition-colors ${
+        active ? 'border-afra-orange bg-afra-orange/10 text-afra-orange' : 'border-afra-border text-afra-muted hover:text-afra-white'
+      }`}
+      title={`${ZONES[zone].label} — ${count} layer${count === 1 ? '' : 's'}`}
+    >
+      {ZONES[zone].short}
+      {count > 0 && <span className="ml-0.5 text-[8px] opacity-70">{count}</span>}
+    </button>
   )
 }
 
@@ -486,6 +547,20 @@ function IconTemplates() {
       <rect x="8.6" y="2" width="5.4" height="5.4" rx="1" />
       <rect x="2" y="8.6" width="5.4" height="5.4" rx="1" />
       <path d="M11.3 8.8v5M8.8 11.3h5" strokeLinecap="round" />
+    </svg>
+  )
+}
+function IconShirt() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
+      <path d="M5.5 2L2 4l1.2 2.6L5 6v8h6V6l1.8.6L14 4l-3.5-2c-.7 1-1.5 1.4-2.5 1.4S6.2 3 5.5 2z" strokeLinejoin="round" />
+    </svg>
+  )
+}
+function IconShirtSmall() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+      <path d="M5.5 2L2 4l1.2 2.6L5 6v8h6V6l1.8.6L14 4l-3.5-2c-.7 1-1.5 1.4-2.5 1.4S6.2 3 5.5 2z" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -530,37 +605,6 @@ function IconLayers() {
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
       <path d="M8 2l6 3-6 3-6-3 6-3z" />
       <path d="M2 8.5l6 3 6-3M2 11.5l6 3 6-3" />
-    </svg>
-  )
-}
-function IconEye() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
-      <path d="M1.5 8s2.4-4 6.5-4 6.5 4 6.5 4-2.4 4-6.5 4S1.5 8 1.5 8z" />
-      <circle cx="8" cy="8" r="1.8" />
-    </svg>
-  )
-}
-function IconEyeOff() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
-      <path d="M3 3l10 10M6.2 6.4A2.8 2.8 0 008 10.8c.7 0 1.4-.3 1.9-.7M4 5.2C2.4 6.3 1.5 8 1.5 8s2.4 4 6.5 4c1 0 1.9-.2 2.7-.6M14.5 8s-2.4-4-6.5-4c-.4 0-.8 0-1.1.1" strokeLinecap="round" />
-    </svg>
-  )
-}
-function IconLock() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
-      <rect x="3.5" y="7" width="9" height="6.5" rx="1.2" />
-      <path d="M5.5 7V5.2a2.5 2.5 0 015 0V7" fill="none" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
-  )
-}
-function IconUnlock() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
-      <rect x="3.5" y="7" width="9" height="6.5" rx="1.2" />
-      <path d="M5.5 7V5.2a2.5 2.5 0 014.9-.6" />
     </svg>
   )
 }

@@ -8,7 +8,17 @@ AI is an assistant. The 3D editor is the product.
 
 ---
 
-## Current milestone — AFRA 3D Apparel Studio
+## Current milestone — T-Shirt Studio V2
+
+The T-shirt module has been upgraded to a professional 3D apparel design tool:
+
+- **Parametric garment engine** (`src/lib/garment/`) — lofted cloth geometry with drape folds, shoulder shelves, ribbed collars following the scooped neckline, set-in sleeves, and baked stitched seams. Every variant (Men/Women × Oversized/Regular/Slim × Half/Full sleeve; Cropped/Boxy/Longline flagged for later) is a genuinely different mesh, rebuilt from dimension tables.
+- **Zone-based printing** — six placement zones (Front, Back, Left/Right Chest, Left/Right Sleeve). Artwork is baked into each part's surface texture together with the fabric weave, so prints follow folds and lighting like real ink; a matching roughness map gives print areas a screen-print sheen. Legacy front/back documents migrate automatically.
+- **Fabric system** — 7 apparel presets (Cotton, Heavy Cotton, Jersey Knit, Polyester, Performance, Soft Cotton, Washed) with procedural weave normal/roughness maps, MeshPhysicalMaterial sheen, and a custom dark-studio IBL environment (PMREM, no downloads). Controls: color, roughness, opacity + Advanced (weave type/scale, sheen, relief).
+- **AI graphic generation** — "Create with AI" generates several original racing-inspired vector variations (helmet, formula car, circuit, tire, steering, speed lines, checkers) from a prompt, contrast-aware against the garment color; the chosen one becomes an editable graphic layer. With `AI_PROVIDER=openai` the same panel uses real image generation.
+- **Visual model selector** — the T-shirt setup screen (new-design flow) and the editor's Garment panel show variant-accurate silhouette thumbnails.
+
+### V1 milestone — AFRA 3D Apparel Studio
 
 The first build target (PRD §92) is functional end-to-end:
 

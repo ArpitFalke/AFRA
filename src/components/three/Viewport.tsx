@@ -1,17 +1,30 @@
 'use client'
 
-import { useRef } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { useEffect, useRef } from 'react'
+import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
 import { TShirtModel } from './TShirtModel'
-import { DesignSurface } from './DesignSurface'
 import { StudioEnvironment } from './StudioEnvironment'
 import { CameraRig } from './CameraRig'
 import { ExportBridge } from './ExportBridge'
+import { useEditorStore } from '@/stores/editor-store'
 import { isWebGLAvailable } from './webgl'
 import { ViewportFallback } from './ViewportFallback'
+
+/** Re-renders shadow maps when the design scene changes. */
+function ShadowRefresher() {
+  const gl = useThree((s) => s.gl)
+  const doc = useEditorStore((s) => s.doc)
+  const lighting = useEditorStore((s) => s.doc.lighting)
+  useEffect(() => {
+    queueMicrotask(() => {
+      gl.shadowMap.needsUpdate = true
+    })
+  }, [gl, doc, lighting])
+  return null
+}
 
 export function Viewport({ interactive = true }: { interactive?: boolean }) {
   const controlsRef = useRef<OrbitControlsImpl | null>(null)
@@ -23,30 +36,32 @@ export function Viewport({ interactive = true }: { interactive?: boolean }) {
   return (
     <Canvas
       shadows
-      dpr={[1, 2]}
       gl={{ antialias: true, preserveDrawingBuffer: true, alpha: false }}
-      camera={{ position: [1.7, 0.55, 2.5], fov: 38, near: 0.1, far: 60 }}
+      camera={{ position: [1.95, 0.4, 2.15], fov: 38, near: 0.1, far: 60 }}
       onCreated={({ gl }) => {
         gl.toneMapping = THREE.ACESFilmicToneMapping
-        gl.toneMappingExposure = 1.05
+        gl.toneMappingExposure = 0.95
+        gl.shadowMap.type = THREE.PCFShadowMap
+        // garment and lights are static relative to each other — render
+        // shadow maps only when the scene actually changes
+        gl.shadowMap.autoUpdate = false
+        gl.shadowMap.needsUpdate = true
       }}
+      dpr={[1, 1.5]}
     >
       <ExportBridge />
+      <ShadowRefresher />
       <StudioEnvironment />
       <CameraRig controlsRef={controlsRef} />
-      <group>
-        <TShirtModel />
-        <DesignSurface side="front" position={[0, 0.26, 0.216]} />
-        <DesignSurface side="back" position={[0, 0.26, -0.216]} rotation={[0, Math.PI, 0]} />
-      </group>
+      <TShirtModel />
       <OrbitControls
         ref={controlsRef}
         enabled={interactive}
         enablePan={false}
-        minDistance={1.2}
+        minDistance={0.9}
         maxDistance={6}
         minPolarAngle={0.15}
-        maxPolarAngle={Math.PI - 0.15}
+        maxPolarAngle={Math.PI - 0.2}
         enableDamping
         dampingFactor={0.08}
       />

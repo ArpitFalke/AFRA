@@ -1,10 +1,11 @@
+import type { Zone } from '@/lib/garment/zones'
+
 /**
  * AFRA Design Document model.
  *
  * A project is a structured, editable design — never just a rendered image.
- * Layers live in a normalized design space (0..1 x 0..1) per garment side
- * ("front" | "back"). The 3D viewport projects them onto the product; the
- * 2D renderer composites them onto a canvas texture.
+ * Layers live in a normalized design space (0..1 x 0..1) inside a placement
+ * zone ("front", "back", "left-chest", …) of the garment.
  */
 
 export const PROJECT_TYPES = [
@@ -31,6 +32,7 @@ export const PROJECT_TYPE_META: Record<ProjectType, { label: string; status: 'li
   custom3d: { label: 'Custom 3D', status: 'soon' },
 }
 
+/** Kept for backward compatibility with pre-V2 documents. */
 export type Side = 'front' | 'back'
 
 export type LayerType = 'text' | 'graphic' | 'shape' | 'pattern'
@@ -39,6 +41,8 @@ export interface BaseLayer {
   id: string
   type: LayerType
   name: string
+  zone: Zone
+  /** Pre-V2 field, maintained in sync for compatibility. */
   side: Side
   visible: boolean
   locked: boolean
@@ -76,6 +80,8 @@ export interface GraphicLayer extends BaseLayer {
   aspect: number
   /** Natural size baseline in design units (larger dimension). */
   baseSize: number
+  /** Ink blend against the fabric. */
+  blend?: 'normal' | 'multiply' | 'screen'
 }
 
 export type ShapePreset =
@@ -106,17 +112,29 @@ export interface PatternLayer extends BaseLayer {
   colorB: string
   density: number // pattern repeat count across the tile
   angle: number // degrees, independent of layer rotation
-  /** Fraction of the side the pattern covers (1 = full design area). */
+  /** Fraction of the zone the pattern covers (1 = full design area). */
   coverage: number
 }
 
 export type DesignLayer = TextLayer | GraphicLayer | ShapeLayer | PatternLayer
 
-export type MaterialId = 'cotton' | 'sport-poly' | 'heavy' | 'vintage'
+/** Fabric appearance overrides — advanced controls. */
+export interface FabricOverride {
+  weaveScale?: number
+  roughness?: number
+  sheen?: number
+  normalStrength?: number
+}
 
 export interface GarmentConfig {
   color: string
-  material: MaterialId
+  /** Material preset id — see MATERIAL_PRESETS. */
+  material: string
+  /** TShirtVariant key, e.g. "mens-regular-half". */
+  variant: string
+  /** Garment opacity (fabric thinness). */
+  opacity: number
+  fabricOverride?: FabricOverride
 }
 
 export type LightingPreset = 'studio' | 'dramatic' | 'soft'
@@ -157,15 +175,15 @@ export interface GeneratedDesign {
   summary?: string
 }
 
-export const DESIGN_SPACE = 1000 // design units per side
+export const DESIGN_SPACE = 1000 // design units per zone
 
 export function isMovableLayer(layer: DesignLayer | undefined | null): boolean {
   return !!layer && layer.type !== 'pattern'
 }
 
-/** Layers of a given side in draw order (bottom → top). */
-export function layersForSide(doc: DesignDocument, side: Side): DesignLayer[] {
-  return doc.layers.filter((l) => l.side === side)
+/** Layers of a zone in draw order (bottom → top). */
+export function layersForZone(doc: DesignDocument, zone: Zone): DesignLayer[] {
+  return doc.layers.filter((l) => l.zone === zone)
 }
 
 let layerCounter = 0
@@ -184,10 +202,7 @@ export function cloneLayer<T extends DesignLayer>(layer: T, overrides: Partial<T
   } as T
 }
 
-/**
- * Approximate axis-aligned bounds of a layer in final design units
- * (layer scale applied), centered on (x, y).
- */
+/** Approximate axis-aligned bounds of a layer in final design units (scale applied). */
 export function layerBounds(layer: DesignLayer): { w: number; h: number } {
   switch (layer.type) {
     case 'text': {

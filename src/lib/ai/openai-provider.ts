@@ -65,6 +65,48 @@ export class OpenAICompatibleProvider implements AIProvider {
     return this.validate(JSON.parse(content), input.prompt)
   }
 
+  async generateGraphics(input: { prompt: string; style?: string; variations?: number; garmentColor?: string }): Promise<
+    { name: string; mime: 'image/svg+xml' | 'image/png'; data: string }[]
+  > {
+    const count = Math.min(4, Math.max(2, input.variations ?? 3))
+    const styleLine = input.style ? ` Style: ${input.style}.` : ''
+    const res = await fetch(`${this.baseUrl()}/images/generations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.AI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: process.env.AI_IMAGE_MODEL ?? 'gpt-image-1',
+        prompt: `T-shirt graphic artwork, original racing-inspired design, bold clean vector shapes, print-ready, isolated on transparent background, no watermark.${styleLine} Description: ${input.prompt}`,
+        n: count,
+        size: '1024x1024',
+        background: 'transparent',
+        response_format: 'b64_json',
+      }),
+    })
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      throw new Error(`AI image provider error (${res.status}). ${body.slice(0, 180)}`)
+    }
+    const json = (await res.json()) as { data?: { b64_json?: string; url?: string }[] }
+    const items = json.data ?? []
+    const graphics: { name: string; mime: 'image/svg+xml' | 'image/png'; data: string }[] = []
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      if (item.b64_json) {
+        graphics.push({ name: `AI graphic ${i + 1}`, mime: 'image/png', data: item.b64_json })
+      } else if (item.url) {
+        const imgRes = await fetch(item.url)
+        if (!imgRes.ok) continue
+        const buf = Buffer.from(await imgRes.arrayBuffer())
+        graphics.push({ name: `AI graphic ${i + 1}`, mime: 'image/png', data: buf.toString('base64') })
+      }
+    }
+    if (graphics.length === 0) throw new Error('The AI provider returned no images.')
+    return graphics
+  }
+
   async generateImage(): Promise<{ dataUrl: string }> {
     throw new Error('Image generation requires a provider with image support. Configure AI_MODEL accordingly.')
   }
