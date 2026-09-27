@@ -43,6 +43,13 @@ export function EditorPageClient({
     })()
   }, [projectId, load])
 
+  // Dev/testing hook: lets tools drive the editor store without DOM clicks.
+  useEffect(() => {
+    if (state === 'ready' && typeof window !== 'undefined') {
+      ;(window as unknown as { __afraStore?: typeof useEditorStore }).__afraStore = useEditorStore
+    }
+  }, [state])
+
   if (state === 'loading') {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 bg-afra-bg">

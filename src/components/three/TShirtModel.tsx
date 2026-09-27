@@ -25,8 +25,6 @@ function darken(hex: string, f: number): string {
 interface PartTextures {
   map: THREE.CanvasTexture
   roughMap: THREE.CanvasTexture
-  colorCanvas: HTMLCanvasElement
-  roughCanvas: HTMLCanvasElement
   colorCtx: CanvasRenderingContext2D
   roughCtx: CanvasRenderingContext2D
 }
@@ -41,14 +39,14 @@ function makePartTextures(): PartTextures {
   map.anisotropy = 8
   const roughMap = new THREE.CanvasTexture(roughCanvas)
   roughMap.colorSpace = THREE.NoColorSpace
-  return { map, roughMap, colorCanvas, roughCanvas, colorCtx: colorCanvas.getContext('2d')!, roughCtx: roughCanvas.getContext('2d')! }
+  return { map, roughMap, colorCtx: colorCanvas.getContext('2d')!, roughCtx: roughCanvas.getContext('2d')! }
 }
 
 /**
- * The garment: parametric mesh per variant with baked fabric + print
- * textures. Prints are composited into the surface, so they follow folds
- * and lighting like real ink. Handles click-pick and drag-to-move of the
- * selected layer directly on the garment.
+ * The garment: panel-based parametric mesh per variant with baked fabric +
+ * print textures. Prints are composited into the surface so they follow
+ * folds and lighting like real ink. Handles click-pick and drag-to-move of
+ * the selected layer directly on the garment.
  */
 export function TShirtModel() {
   const doc = useEditorStore((s) => s.doc)
@@ -61,13 +59,22 @@ export function TShirtModel() {
   const build = useMemo(() => buildGarment(getDims(variant), variantKey(variant)), [variant])
 
   const parts = useMemo(
-    () => ({ torso: makePartTextures(), 'sleeve-l': makePartTextures(), 'sleeve-r': makePartTextures() }),
+    () => ({
+      'body-front': makePartTextures(),
+      'body-back': makePartTextures(),
+      'sleeve-l': makePartTextures(),
+      'sleeve-r': makePartTextures(),
+    }),
     [],
   )
 
   const imagesRef = useRef<Record<string, HTMLImageElement>>({})
   const [imagesVersion, setImagesVersion] = useState(0)
   const dragRef = useRef<{ layerId: string; dx: number; dy: number; zone: Zone } | null>(null)
+
+  useEffect(() => {
+    ;(window as unknown as { __afraGeom?: unknown }).__afraGeom = build
+  }, [build])
 
   // Load fonts + graphic assets, then bake.
   useEffect(() => {
@@ -95,7 +102,7 @@ export function TShirtModel() {
 
   function rebake() {
     const state = useEditorStore.getState()
-    for (const part of ['torso', 'sleeve-l', 'sleeve-r'] as GarmentPart[]) {
+    for (const part of ['body-front', 'body-back', 'sleeve-l', 'sleeve-r'] as GarmentPart[]) {
       const pt = parts[part]
       const bake = bakePart(state.doc, part, BAKE_SIZE, imagesRef.current, {
         selectedLayerId: state.selectedLayerId,
@@ -132,6 +139,20 @@ export function TShirtModel() {
   const sheen = override?.sheen ?? preset.sheen
   const opacity = doc.garment.opacity ?? 1
 
+  // fabric thickness: the inside of the garment reads darker, so hems,
+  // neck and sleeve openings look like real cloth instead of a shell
+  const thickness = useMemo(
+    () => ({
+      onBeforeCompile: (shader: THREE.WebGLProgramParametersWithUniforms) => {
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <color_fragment>',
+          '#include <color_fragment>\n  if (!gl_FrontFacing) { diffuseColor.rgb *= 0.6; }',
+        )
+      },
+    }),
+    [],
+  )
+
   const commonProps = {
     roughness,
     metalness: 0,
@@ -145,6 +166,7 @@ export function TShirtModel() {
     transparent: opacity < 1,
     opacity,
     side: THREE.DoubleSide,
+    ...thickness,
   }
 
   function uvToZoneDesign(part: GarmentPart, uv: THREE.Vector2): { zone: Zone; x: number; y: number } | null {
@@ -198,41 +220,28 @@ export function TShirtModel() {
     dragRef.current = null
   }
 
+  const handlers = (part: GarmentPart) => ({
+    onPointerDown: onPointerDown(part),
+    onPointerMove,
+    onPointerUp: endDrag,
+    onPointerCancel: endDrag,
+  })
+
   return (
     <group position={[0, 0.06, 0]}>
-      <mesh
-        geometry={build.torso.geometry}
-        castShadow
-        receiveShadow
-        onPointerDown={onPointerDown('torso')}
-        onPointerMove={onPointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-      >
-        <meshPhysicalMaterial {...commonProps} map={parts.torso.map} roughnessMap={parts.torso.roughMap} />
+      <mesh geometry={build.bodyFront} castShadow receiveShadow {...handlers('body-front')}>
+        <meshPhysicalMaterial {...commonProps} map={parts['body-front'].map} roughnessMap={parts['body-front'].roughMap} />
       </mesh>
 
-      <mesh
-        geometry={build.sleeveL.geometry}
-        castShadow
-        receiveShadow
-        onPointerDown={onPointerDown('sleeve-l')}
-        onPointerMove={onPointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-      >
+      <mesh geometry={build.bodyBack} castShadow receiveShadow {...handlers('body-back')}>
+        <meshPhysicalMaterial {...commonProps} map={parts['body-back'].map} roughnessMap={parts['body-back'].roughMap} />
+      </mesh>
+
+      <mesh geometry={build.sleeveL.geometry} castShadow receiveShadow {...handlers('sleeve-l')}>
         <meshPhysicalMaterial {...commonProps} map={parts['sleeve-l'].map} roughnessMap={parts['sleeve-l'].roughMap} />
       </mesh>
 
-      <mesh
-        geometry={build.sleeveR.geometry}
-        castShadow
-        receiveShadow
-        onPointerDown={onPointerDown('sleeve-r')}
-        onPointerMove={onPointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-      >
+      <mesh geometry={build.sleeveR.geometry} castShadow receiveShadow {...handlers('sleeve-r')}>
         <meshPhysicalMaterial {...commonProps} map={parts['sleeve-r'].map} roughnessMap={parts['sleeve-r'].roughMap} />
       </mesh>
 
@@ -251,6 +260,7 @@ export function TShirtModel() {
           transparent={opacity < 1}
           opacity={opacity}
           side={THREE.DoubleSide}
+          {...thickness}
         />
       </mesh>
     </group>

@@ -14,7 +14,7 @@
  *   shoulder(1) → cuff(0).
  */
 
-export type GarmentPart = 'torso' | 'sleeve-l' | 'sleeve-r'
+export type GarmentPart = 'body-front' | 'body-back' | 'sleeve-l' | 'sleeve-r'
 
 export type Zone = 'front' | 'back' | 'left-chest' | 'right-chest' | 'left-sleeve' | 'right-sleeve'
 
@@ -36,12 +36,12 @@ export interface ZoneDef {
 }
 
 export const ZONES: Record<Zone, ZoneDef> = {
-  front: { id: 'front', label: 'Front', short: 'F', part: 'torso', u0: 0.31, u1: 0.69, v0: 0.26, v1: 0.88, view: 'front' },
-  back: { id: 'back', label: 'Back', short: 'B', part: 'torso', u0: 0.81, u1: 1.19, v0: 0.3, v1: 0.92, view: 'back' },
-  'left-chest': { id: 'left-chest', label: 'Left Chest', short: 'LC', part: 'torso', u0: 0.565, u1: 0.675, v0: 0.62, v1: 0.8, view: 'front' },
-  'right-chest': { id: 'right-chest', label: 'Right Chest', short: 'RC', part: 'torso', u0: 0.325, u1: 0.435, v0: 0.62, v1: 0.8, view: 'front' },
-  'left-sleeve': { id: 'left-sleeve', label: 'Left Sleeve', short: 'LS', part: 'sleeve-l', u0: 0.405, u1: 0.595, v0: 0.2, v1: 0.7, view: 'left' },
-  'right-sleeve': { id: 'right-sleeve', label: 'Right Sleeve', short: 'RS', part: 'sleeve-r', u0: 0.405, u1: 0.595, v0: 0.2, v1: 0.7, view: 'right' },
+  front: { id: 'front', label: 'Front', short: 'F', part: 'body-front', u0: 0.32, u1: 0.68, v0: 0.22, v1: 0.85, view: 'front' },
+  back: { id: 'back', label: 'Back', short: 'B', part: 'body-back', u0: 0.32, u1: 0.68, v0: 0.24, v1: 0.88, view: 'back' },
+  'left-chest': { id: 'left-chest', label: 'Left Chest', short: 'LC', part: 'body-front', u0: 0.56, u1: 0.68, v0: 0.56, v1: 0.76, view: 'front' },
+  'right-chest': { id: 'right-chest', label: 'Right Chest', short: 'RC', part: 'body-front', u0: 0.32, u1: 0.44, v0: 0.56, v1: 0.76, view: 'front' },
+  'left-sleeve': { id: 'left-sleeve', label: 'Left Sleeve', short: 'LS', part: 'sleeve-l', u0: 0.4, u1: 0.6, v0: 0.18, v1: 0.68, view: 'left' },
+  'right-sleeve': { id: 'right-sleeve', label: 'Right Sleeve', short: 'RS', part: 'sleeve-r', u0: 0.4, u1: 0.6, v0: 0.18, v1: 0.68, view: 'right' },
 }
 
 /** Which side of the garment a zone is on (for documents saved pre-V2). */

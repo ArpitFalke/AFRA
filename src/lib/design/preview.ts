@@ -75,7 +75,7 @@ function pickPreviewZone(doc: DesignDocument): Zone | null {
  */
 function previewZoneRect(doc: DesignDocument, zone: Zone, size: number, bodyH: number) {
   const def = ZONES[zone]
-  if (def.part !== 'torso') return null
+  if (def.part !== 'body-front' && def.part !== 'body-back') return null
   const dims = getDims(parseVariantKey(doc.garment.variant))
   const k = size / (bodyH * 1.12)
   const cx = size / 2

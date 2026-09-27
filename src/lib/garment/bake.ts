@@ -102,21 +102,30 @@ export function bakePart(
   // seams — stitched hem, shoulder and side seams
   const seam = darken(base, 0.62)
   const seamSoft = darken(base, 0.78)
-  if (part === 'torso') {
+  if (part === 'body-front' || part === 'body-back') {
+    // hem double stitch
     stitchLine(ctx, 0, size * 0.985, size, size * 0.985, seamSoft, 2.5)
     stitchLine(ctx, 0, size * 0.965, size, size * 0.965, seam, 1.8)
     stitchLine(ctx, 0, size * 0.945, size, size * 0.945, seamSoft, 1.2)
-    // shoulder seams
-    stitchLine(ctx, size * 0.06, size * 0.075, size * 0.44, size * 0.03, seam, 1.8)
-    stitchLine(ctx, size * 0.56, size * 0.03, size * 0.94, size * 0.075, seam, 1.8)
-    // side seams
-    stitchLine(ctx, size * 0.25, size * 0.1, size * 0.253, size * 0.93, seamSoft, 1.6)
-    stitchLine(ctx, size * 0.75, size * 0.1, size * 0.747, size * 0.93, seamSoft, 1.6)
+    // side seams at the panel edges
+    stitchLine(ctx, size * 0.012, size * 0.08, size * 0.012, size * 0.93, seamSoft, 1.6)
+    stitchLine(ctx, size * 0.988, size * 0.08, size * 0.988, size * 0.93, seamSoft, 1.6)
+    // armhole curves near the top corners
+    ctx.save()
+    ctx.strokeStyle = seam
+    ctx.lineWidth = 1.8
+    ctx.beginPath()
+    ctx.moveTo(size * 0.02, size * 0.1)
+    ctx.quadraticCurveTo(size * 0.1, size * 0.015, size * 0.24, size * 0.005)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(size * 0.98, size * 0.1)
+    ctx.quadraticCurveTo(size * 0.9, size * 0.015, size * 0.76, size * 0.005)
+    ctx.stroke()
+    ctx.restore()
   } else {
     stitchLine(ctx, 0, size * 0.955, size, size * 0.955, seamSoft, 2.2)
     stitchLine(ctx, 0, size * 0.935, size, size * 0.935, seam, 1.6)
-    // underarm seam along the wrap edge
-    stitchLine(ctx, size * 0.002, size * 0.06, size * 0.002, size * 0.92, seamSoft, 1.6)
   }
 
   // roughness base from the weave map
@@ -178,7 +187,7 @@ export function bakePart(
   }
 
   // woven shading pass over everything (fabric + ink) — integrates prints
-  ctx.globalAlpha = 0.12
+  ctx.globalAlpha = 0.17
   const pat = ctx.createPattern(weave.shade, 'repeat')!
   if (pat) {
     ctx.globalCompositeOperation = 'multiply'

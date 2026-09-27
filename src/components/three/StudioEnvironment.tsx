@@ -42,7 +42,7 @@ function buildDarkStudioScene(): THREE.Scene {
   panel(3.2, 2.2, 5.5, 0xfff2e0, [3.2, 2.6, 2.4]) // key softbox
   panel(2.2, 3, 1.1, 0xdce4f2, [-3.2, 1.4, 1.6]) // cool fill
   panel(1.6, 3, 3.2, 0xffd9c4, [0.4, 2.2, -3.4]) // warm rim
-  panel(4, 0.9, 1.6, 0xffffff, [0, 4, 0.5]) // top strip
+  panel(4.5, 1.4, 4.2, 0xffffff, [0, 4, 1.2]) // top strip — lights the yoke/shoulders
   return scene
 }
 

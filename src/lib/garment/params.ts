@@ -85,14 +85,14 @@ const BASE: GarmentDims = {
   chestHalfWidth: 0.5,
   shoulderHalfWidth: 0.52,
   depthRatio: 0.56,
-  neckRadius: 0.14,
-  neckScoop: 0.04,
+  neckRadius: 0.13,
+  neckScoop: 0.028,
   shoulderDrop: 0.1,
-  sleeveLength: 0.34,
-  sleeveStartRadius: 0.125,
+  sleeveLength: 0.36,
+  sleeveStartRadius: 0.12,
   sleeveCuffRadius: 0.105,
-  sleeveAngle: 0.78,
-  drapeAmp: 0.008,
+  sleeveAngle: 0.88,
+  drapeAmp: 0.01,
   drapeCount: 6,
   hemFlare: 1.04,
 }
@@ -107,9 +107,9 @@ const FIT_OVERRIDES: Record<Fit, Partial<GarmentDims>> = {
     drapeAmp: 0.014,
     drapeCount: 6,
     hemFlare: 1.02,
-    sleeveStartRadius: 0.155,
-    sleeveCuffRadius: 0.13,
-    sleeveLength: 0.38,
+    sleeveStartRadius: 0.14,
+    sleeveCuffRadius: 0.125,
+    sleeveLength: 0.4,
   },
   regular: {},
   slim: {
@@ -120,8 +120,8 @@ const FIT_OVERRIDES: Record<Fit, Partial<GarmentDims>> = {
     drapeAmp: 0.006,
     drapeCount: 5,
     hemFlare: 1.05,
-    sleeveStartRadius: 0.125,
-    sleeveCuffRadius: 0.1,
+    sleeveStartRadius: 0.115,
+    sleeveCuffRadius: 0.095,
   },
   cropped: {
     hemY: -0.42,
@@ -160,9 +160,9 @@ const GENDER_OVERRIDES: Record<Gender, Partial<GarmentDims>> = {
 const SLEEVE_OVERRIDES: Record<SleeveLen, Partial<GarmentDims>> = {
   half: {},
   full: {
-    sleeveLength: 0.6,
-    sleeveCuffRadius: 0.095,
-    sleeveAngle: 0.66,
+    sleeveLength: 0.62,
+    sleeveCuffRadius: 0.09,
+    sleeveAngle: 0.76,
   },
 }
 
