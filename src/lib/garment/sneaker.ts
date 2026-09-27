@@ -108,7 +108,7 @@ function buildUpper(segments = 56, rows = 22): THREE.BufferGeometry {
       // topline height around the foot: low toe, high collar/heel
       const topY =
         0.16 +
-        0.34 * smoothstep(0.25, 0.95, 1 - Math.abs(t - 0.5) * 1.35) * smoothstep(0.02, 0.3, 1 - t) +
+        0.1 * smoothstep(0.3, 0.95, 1 - Math.abs(t - 0.5) * 1.2) * smoothstep(0.02, 0.3, 1 - t) +
         0.42 * smoothstep(0.45, 0.02, t) // heel/ankle rise
       const wallH = lerp(0.02, topY, Math.pow(v, 0.85))
       const base = 0.1
@@ -142,7 +142,7 @@ function buildUpper(segments = 56, rows = 22): THREE.BufferGeometry {
 
 /** Tongue: curved wedge rising from the vamp throat. */
 function buildTongue(): THREE.BufferGeometry {
-  const geometry = new THREE.PlaneGeometry(0.34, 0.5, 8, 10)
+  const geometry = new THREE.PlaneGeometry(0.24, 0.34, 8, 10)
   const pos = geometry.attributes.position
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i)
@@ -150,9 +150,9 @@ function buildTongue(): THREE.BufferGeometry {
     pos.setZ(i, Math.sin((y + 0.25) * 2.4) * 0.1 - Math.abs(x) * 0.22)
     pos.setY(i, y + 0.18)
   }
-  geometry.translate(0, 0.36, 0.02)
-  geometry.rotateX(-0.35)
-  geometry.translate(0, 0.12, 0.42)
+  geometry.translate(0, 0.24, 0.02)
+  geometry.rotateX(-0.55)
+  geometry.translate(0, 0.22, 0.26)
   geometry.computeVertexNormals()
   return geometry
 }
@@ -164,7 +164,7 @@ function buildLaces(): THREE.BufferGeometry {
     const g = new THREE.TorusGeometry(0.155 - i * 0.008, 0.016, 8, 24, Math.PI)
     g.rotateX(Math.PI / 2 + 0.3)
     g.scale(1, 1, 1.35)
-    g.translate(0, 0.42 + i * 0.075, 0.34 - i * 0.055)
+    g.translate(0, 0.38 + i * 0.062, 0.32 - i * 0.05)
     geos.push(g)
   }
   const merged = mergeGeometries(geos)
@@ -212,7 +212,7 @@ function buildAnkleCollar(): THREE.BufferGeometry {
   g.rotateY(Math.PI / 2)
   g.rotateZ(-0.15)
   g.scale(1, 1.25, 1.15)
-  g.translate(0.02, 0.62, -0.18)
+  g.translate(0.0, 0.56, -0.16)
   return g
 }
 
