@@ -6,6 +6,7 @@ import { OrbitControls } from '@react-three/drei'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
 import { TShirtModel } from './TShirtModel'
+import { GarmentModel } from './GarmentModel'
 import { SneakerModel } from './SneakerModel'
 import { useEditorStore } from '@/stores/editor-store'
 import { StudioEnvironment } from './StudioEnvironment'
@@ -55,7 +56,7 @@ export function Viewport({ interactive = true }: { interactive?: boolean }) {
       <ShadowRefresher />
       <StudioEnvironment />
       <CameraRig controlsRef={controlsRef} />
-      {projectType === "sneaker" ? <SneakerModel /> : <TShirtModel />}
+      {projectType === "sneaker" ? <SneakerModel /> : projectType === "jersey" ? <GarmentModel /> : <TShirtModel />}
       <OrbitControls
         ref={controlsRef}
         enabled={interactive}
