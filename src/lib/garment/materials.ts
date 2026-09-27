@@ -13,6 +13,8 @@ export interface MaterialPreset {
   id: string
   name: string
   description: string
+  /** Which studios offer this preset. */
+  studios: string[]
   roughness: number
   sheen: number
   sheenRoughness: number
@@ -27,6 +29,7 @@ export const MATERIAL_PRESETS: MaterialPreset[] = [
     id: 'cotton',
     name: 'Cotton',
     description: 'Classic combed cotton jersey.',
+    studios: ['tshirts'],
     roughness: 0.93,
     sheen: 0.22,
     sheenRoughness: 0.85,
@@ -38,6 +41,7 @@ export const MATERIAL_PRESETS: MaterialPreset[] = [
     id: 'heavy-cotton',
     name: 'Heavy Cotton',
     description: 'Dense 240gsm knit with a structured hand.',
+    studios: ['tshirts'],
     roughness: 0.97,
     sheen: 0.15,
     sheenRoughness: 0.9,
@@ -49,6 +53,7 @@ export const MATERIAL_PRESETS: MaterialPreset[] = [
     id: 'jersey-knit',
     name: 'Jersey Knit',
     description: 'Visible loop-knit texture, soft drape.',
+    studios: ['tshirts'],
     roughness: 0.9,
     sheen: 0.28,
     sheenRoughness: 0.8,
@@ -60,6 +65,7 @@ export const MATERIAL_PRESETS: MaterialPreset[] = [
     id: 'polyester',
     name: 'Polyester',
     description: 'Smooth technical weave, slight sheen.',
+    studios: ['tshirts', 'jerseys'],
     roughness: 0.72,
     sheen: 0.26,
     sheenRoughness: 0.55,
@@ -71,6 +77,7 @@ export const MATERIAL_PRESETS: MaterialPreset[] = [
     id: 'performance',
     name: 'Performance Fabric',
     description: 'Micro-knit sport fabric, moisture-wicking look.',
+    studios: ['tshirts', 'jerseys', 'sneakers'],
     roughness: 0.62,
     sheen: 0.3,
     sheenRoughness: 0.45,
@@ -82,6 +89,7 @@ export const MATERIAL_PRESETS: MaterialPreset[] = [
     id: 'soft-cotton',
     name: 'Soft Cotton',
     description: 'Air-jet spun, brushed, very fine texture.',
+    studios: ['tshirts'],
     roughness: 0.95,
     sheen: 0.2,
     sheenRoughness: 0.88,
@@ -93,6 +101,7 @@ export const MATERIAL_PRESETS: MaterialPreset[] = [
     id: 'washed',
     name: 'Washed Cotton',
     description: 'Garment-dyed, irregular relaxed surface.',
+    studios: ['tshirts'],
     roughness: 0.98,
     sheen: 0.14,
     sheenRoughness: 0.95,
@@ -102,8 +111,27 @@ export const MATERIAL_PRESETS: MaterialPreset[] = [
   },
 ]
 
+const EXTRA_PRESETS: MaterialPreset[] = [
+  { id: 'mesh', name: 'Mesh', description: 'Breathable perforated knit.', studios: ['jerseys', 'sneakers'], roughness: 0.85, sheen: 0.2, sheenRoughness: 0.9, weave: 'micro', normalScale: 0.9, weaveScale: 40 },
+  { id: 'athletic-knit', name: 'Athletic Knit', description: 'Dense sport knit with a soft hand.', studios: ['jerseys'], roughness: 0.88, sheen: 0.3, sheenRoughness: 0.8, weave: 'knit', normalScale: 0.5, weaveScale: 24 },
+  { id: 'lightweight-poly', name: 'Lightweight Polyester', description: 'Feather-light race fabric.', studios: ['jerseys'], roughness: 0.68, sheen: 0.35, sheenRoughness: 0.5, weave: 'fine', normalScale: 0.24, weaveScale: 38 },
+  { id: 'dri-style', name: 'Dri-Style Performance', description: 'Wicking training fabric.', studios: ['jerseys'], roughness: 0.58, sheen: 0.42, sheenRoughness: 0.42, weave: 'micro', normalScale: 0.2, weaveScale: 48 },
+  { id: 'leather', name: 'Leather', description: 'Full-grain leather with natural grain.', studios: ['sneakers'], roughness: 0.55, sheen: 0.35, sheenRoughness: 0.45, weave: 'washed', normalScale: 0.5, weaveScale: 12 },
+  { id: 'suede', name: 'Suede', description: 'Velvety napped finish.', studios: ['sneakers'], roughness: 1, sheen: 0.55, sheenRoughness: 0.95, weave: 'soft', normalScale: 0.45, weaveScale: 20 },
+  { id: 'canvas', name: 'Canvas', description: 'Heavy woven cotton duck.', studios: ['sneakers'], roughness: 0.96, sheen: 0.12, sheenRoughness: 0.95, weave: 'heavy', normalScale: 0.7, weaveScale: 14 },
+  { id: 'rubber', name: 'Rubber', description: 'Grippy matte rubber.', studios: ['sneakers'], roughness: 0.8, sheen: 0.1, sheenRoughness: 0.8, weave: 'micro', normalScale: 0.3, weaveScale: 26 },
+  { id: 'synthetic', name: 'Synthetic', description: 'Engineered synthetic upper.', studios: ['sneakers'], roughness: 0.5, sheen: 0.4, sheenRoughness: 0.4, weave: 'fine', normalScale: 0.25, weaveScale: 30 },
+  { id: 'patent', name: 'Patent', description: 'Glossy patent finish.', studios: ['sneakers'], roughness: 0.18, sheen: 0.7, sheenRoughness: 0.15, weave: 'fine', normalScale: 0.1, weaveScale: 20 },
+]
+
+const ALL_PRESETS = [...MATERIAL_PRESETS, ...EXTRA_PRESETS]
+
 export function getMaterialPreset(id: string): MaterialPreset {
-  return MATERIAL_PRESETS.find((m) => m.id === id) ?? MATERIAL_PRESETS[0]
+  return ALL_PRESETS.find((m) => m.id === id) ?? MATERIAL_PRESETS[0]
+}
+
+export function materialsForStudio(studio: string): MaterialPreset[] {
+  return ALL_PRESETS.filter((m) => m.studios.includes(studio))
 }
 
 interface WeaveMaps {

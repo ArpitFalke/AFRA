@@ -19,6 +19,8 @@ import { toast } from '@/components/shared/Toast'
 import { Spinner } from '@/components/shared/Spinner'
 import { useAssets, type AssetItem } from '@/hooks/useAssets'
 import { VariantSelector } from '@/components/shared/VariantSelector'
+import { SNEAKER_DEFAULT_COLORS } from '@/lib/garment/sneaker'
+import { getMaterialPreset } from '@/lib/garment/materials'
 
 export type PanelId = 'templates' | 'garment' | 'objects' | 'text' | 'graphics' | 'patterns' | 'layers' | null
 
@@ -37,11 +39,13 @@ export function LeftToolbar({
   setPanel,
   onClose,
   onOpenAIGraphic,
+  category = 'tshirts',
 }: {
   panel: PanelId
   setPanel: (p: PanelId) => void
   onClose: () => void
   onOpenAIGraphic: () => void
+  category?: string
 }) {
   return (
     <div className="flex h-full">
@@ -64,7 +68,7 @@ export function LeftToolbar({
       {panel && (
         <div className="absolute inset-y-0 left-14 z-30 w-60 overflow-y-auto border-r border-afra-border bg-afra-panel/98 p-3 backdrop-blur lg:static lg:z-auto lg:w-64 lg:bg-afra-panel">
           {panel === 'templates' && <TemplatesPanel />}
-          {panel === 'garment' && <GarmentPanel />}
+          {panel === 'garment' && <GarmentPanel category={category} />}
           {panel === 'objects' && <ObjectsPanel />}
           {panel === 'text' && <TextPanel />}
           {panel === 'graphics' && <GraphicsPanel onOpenAIGraphic={onOpenAIGraphic} />}
@@ -72,6 +76,59 @@ export function LeftToolbar({
           {panel === 'layers' && <LayersPanel />}
         </div>
       )}
+    </div>
+  )
+}
+
+function SneakerPartsPanel() {
+  const doc = useEditorStore((s) => s.doc)
+  const setSneakerPart = useEditorStore((s) => s.setSneakerPart)
+  const parts = [
+    { key: 'upper', label: 'Upper', materials: ['leather', 'suede', 'mesh', 'canvas', 'synthetic', 'patent'] },
+    { key: 'tongue', label: 'Tongue', materials: ['leather', 'mesh', 'canvas', 'synthetic'] },
+    { key: 'laces', label: 'Laces', materials: ['canvas', 'synthetic'] },
+    { key: 'ankleCollar', label: 'Collar', materials: ['leather', 'suede', 'mesh'] },
+    { key: 'midsole', label: 'Midsole', materials: ['rubber', 'synthetic'] },
+    { key: 'outsole', label: 'Outsole', materials: ['rubber'] },
+  ]
+  return (
+    <div>
+      <PanelTitle hint="Every panel is its own piece — set color and material per part.">Sneaker Parts</PanelTitle>
+      <div className="flex flex-col gap-3">
+        {parts.map((part) => {
+          const conf = doc.sneaker?.parts?.[part.key]
+          const color = conf?.color ?? SNEAKER_DEFAULT_COLORS[part.key as keyof typeof SNEAKER_DEFAULT_COLORS] ?? '#cccccc'
+          const material = conf?.material ?? (part.key === 'outsole' || part.key === 'midsole' ? 'rubber' : 'leather')
+          return (
+            <div key={part.key} className="rounded-lg border border-afra-border bg-afra-surface p-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold">{part.label}</span>
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(e) => setSneakerPart(part.key, { color: e.target.value.toUpperCase() })}
+                  className="h-5 w-8 rounded"
+                  aria-label={`${part.label} color`}
+                />
+              </div>
+              <select
+                className="input mt-1.5 cursor-pointer !py-1 text-[11px]"
+                value={material}
+                onChange={(e) => setSneakerPart(part.key, { material: e.target.value })}
+              >
+                {part.materials
+                  .map((id) => ({ id, name: getMaterialPreset(id).name }))
+                  .filter((m) => !!m.name)
+                  .map((m) => (
+                    <option key={m.id} value={m.id} className="bg-afra-panel">
+                      {m.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -146,10 +203,40 @@ function TemplatesPanel() {
 
 /* ── Garment (model selector + materials) ──────────────────────────── */
 
-function GarmentPanel() {
+function GarmentPanel({ category = 'tshirts' }: { category?: string }) {
   const garment = useEditorStore((s) => s.doc.garment)
   const setGarment = useEditorStore((s) => s.setGarment)
   const variant = parseVariantKey(garment.variant)
+
+  if (category === 'jerseys') {
+    const sports = [
+      { key: 'jersey-football', label: 'Football', description: 'Short sleeve, crew collar' },
+      { key: 'jersey-basketball', label: 'Basketball', description: 'Sleeveless tank' },
+      { key: 'jersey-racing', label: 'Racing', description: 'Snap-fit race cut' },
+      { key: 'jersey-esports', label: 'Esports', description: 'Long sleeve, high collar' },
+    ]
+    return (
+      <div>
+        <PanelTitle hint="The 3D jersey is rebuilt for every sport — cut, sleeves and neckline change.">Jersey Model</PanelTitle>
+        <div className="flex flex-col gap-1.5">
+          {sports.map((sp) => (
+            <button
+              key={sp.key}
+              onClick={() => setGarment({ variant: sp.key })}
+              className={`rounded-lg border px-3 py-2.5 text-left transition-colors ${garment.variant === sp.key ? 'border-afra-orange bg-afra-orange/10' : 'border-afra-border bg-afra-surface hover:bg-afra-hover'}`}
+            >
+              <div className={`text-xs font-semibold ${garment.variant === sp.key ? 'text-afra-orange' : ''}`}>{sp.label}</div>
+              <div className="text-[11px] text-afra-muted">{sp.description}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (category === 'sneakers') {
+    return <SneakerPartsPanel />
+  }
 
   return (
     <div>

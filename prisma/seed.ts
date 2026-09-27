@@ -25,6 +25,74 @@ interface TemplateSeed {
 
 const TEMPLATES: TemplateSeed[] = [
   {
+    slug: 'kit-starter-football',
+    name: 'Kit Starter — Football',
+    description: 'Home kit with chest band and squad number.',
+    tags: ['jersey', 'football', 'starter'],
+    sortOrder: 20,
+    build: () => {
+      const doc = createDefaultDocument('jersey', 'Kit Starter — Football')
+      doc.garment.color = '#16223D'
+      doc.garment.material = 'athletic-knit'
+      doc.garment.variant = 'jersey-football'
+      doc.layers = [
+        createShapeLayer('front', 'double-stripe', { name: 'Chest band', y: 0.24, scale: 0.78, color: '#F7F5EF', secondaryColor: '#D8432B' }),
+        createNumberLayer('back', '9', { color: '#F7F5EF' }),
+        createTextLayer('back', { name: 'Player name', text: 'RIVERA', y: 0.18, fontSize: 76, fontId: 'saira-condensed', weight: 700, uppercase: true, letterSpacing: 0.18, color: '#F7F5EF' }),
+        createTextLayer('front', { name: 'Crest text', text: 'AFC', y: 0.34, fontSize: 60, fontId: 'inter', weight: 900, uppercase: true, letterSpacing: 0.1, color: '#F7F5EF' }),
+      ]
+      return doc
+    },
+  },
+  {
+    slug: 'tank-starter-basketball',
+    name: 'Tank Starter — Basketball',
+    description: 'Court classic with side trim and number.',
+    tags: ['jersey', 'basketball', 'starter'],
+    sortOrder: 21,
+    build: () => {
+      const doc = createDefaultDocument('jersey', 'Tank Starter — Basketball')
+      doc.garment.color = '#5A1E1E'
+      doc.garment.material = 'mesh'
+      doc.garment.variant = 'jersey-basketball'
+      doc.layers = [
+        createShapeLayer('front', 'stripe-v', { name: 'Side trim L', x: 0.16, y: 0.5, scale: 0.66, color: '#F7F5EF' }),
+        createShapeLayer('front', 'stripe-v', { name: 'Side trim R', x: 0.84, y: 0.5, scale: 0.66, color: '#F7F5EF' }),
+        createNumberLayer('front', '23', { color: '#F7F5EF', y: 0.42 }),
+        createTextLayer('back', { name: 'Wordmark', text: 'COURTSIDE', y: 0.4, fontSize: 88, fontId: 'saira-condensed', weight: 900, uppercase: true, letterSpacing: 0.08, color: '#F7F5EF' }),
+      ]
+      return doc
+    },
+  },
+  {
+    slug: 'sneaker-starter-low',
+    name: 'Sneaker Starter — Low',
+    description: 'Clean low-top with tonal sole and pop heel.',
+    tags: ['sneaker', 'low', 'starter'],
+    sortOrder: 40,
+    build: () => {
+      const doc = createDefaultDocument('sneaker', 'Sneaker Starter — Low')
+      doc.garment.color = '#F0EDE4'
+      doc.garment.material = 'leather'
+      doc.garment.variant = 'sneaker-low'
+      doc.sneaker = {
+        parts: {
+          upper: { color: '#F0EDE4', material: 'leather' },
+          tongue: { color: '#F0EDE4', material: 'leather' },
+          laces: { color: '#F0EDE4', material: 'canvas' },
+          ankleCollar: { color: '#3A3A40', material: 'suede' },
+          midsole: { color: '#E8E4DA', material: 'rubber' },
+          outsole: { color: '#18181B', material: 'rubber' },
+        },
+      }
+      doc.layers = [
+        createShapeLayer('side-panel', 'stripe-h', { name: 'Side stripe', y: 0.5, scale: 0.5, rotation: -8, color: '#B3242B' }),
+        createTextLayer('heel', { name: 'Heel mark', text: 'AFRA', y: 0.5, fontSize: 130, fontId: 'inter', weight: 900, uppercase: true, letterSpacing: 0.08, color: '#18181B' }),
+      ]
+      return doc
+    },
+  },
+  {
     slug: 'apex',
     name: 'Apex',
     description: 'Racing yellow chevrons on heavyweight black.',

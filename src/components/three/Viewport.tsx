@@ -6,10 +6,11 @@ import { OrbitControls } from '@react-three/drei'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
 import { TShirtModel } from './TShirtModel'
+import { SneakerModel } from './SneakerModel'
+import { useEditorStore } from '@/stores/editor-store'
 import { StudioEnvironment } from './StudioEnvironment'
 import { CameraRig } from './CameraRig'
 import { ExportBridge } from './ExportBridge'
-import { useEditorStore } from '@/stores/editor-store'
 import { isWebGLAvailable } from './webgl'
 import { ViewportFallback } from './ViewportFallback'
 
@@ -28,6 +29,7 @@ function ShadowRefresher() {
 
 export function Viewport({ interactive = true }: { interactive?: boolean }) {
   const controlsRef = useRef<OrbitControlsImpl | null>(null)
+  const projectType = useEditorStore((s) => s.doc.projectType)
 
   if (typeof document !== 'undefined' && !isWebGLAvailable()) {
     return <ViewportFallback />
@@ -53,7 +55,7 @@ export function Viewport({ interactive = true }: { interactive?: boolean }) {
       <ShadowRefresher />
       <StudioEnvironment />
       <CameraRig controlsRef={controlsRef} />
-      <TShirtModel />
+      {projectType === "sneaker" ? <SneakerModel /> : <TShirtModel />}
       <OrbitControls
         ref={controlsRef}
         enabled={interactive}

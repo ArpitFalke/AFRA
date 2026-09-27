@@ -35,7 +35,7 @@ export interface EditorUser {
   plan: string
 }
 
-export function EditorShell({ user, autoOpenAI = false }: { user: EditorUser; autoOpenAI?: boolean }) {
+export function EditorShell({ user, autoOpenAI = false, category = 'tshirts' }: { user: EditorUser; autoOpenAI?: boolean; category?: string }) {
   const presenting = useEditorStore((s) => s.presenting)
   const setPresenting = useEditorStore((s) => s.setPresenting)
   const setView = useEditorStore((s) => s.setView)
@@ -116,7 +116,7 @@ export function EditorShell({ user, autoOpenAI = false }: { user: EditorUser; au
       />
 
       <div className="relative flex min-h-0 flex-1">
-        <LeftToolbar panel={panel} setPanel={setPanel} onClose={() => setPanel(null)} onOpenAIGraphic={() => setAiGraphicOpen(true)} />
+        <LeftToolbar panel={panel} setPanel={setPanel} onClose={() => setPanel(null)} onOpenAIGraphic={() => setAiGraphicOpen(true)} category={category} />
 
         <main className="relative min-w-0 flex-1 bg-afra-bg" onDrop={onDrop} onDragOver={onDragOver}>
           <Viewport />

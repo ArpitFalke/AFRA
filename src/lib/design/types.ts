@@ -23,8 +23,8 @@ export type ProjectType = (typeof PROJECT_TYPES)[number]
 
 export const PROJECT_TYPE_META: Record<ProjectType, { label: string; status: 'live' | 'soon' }> = {
   tshirt: { label: 'T-Shirt', status: 'live' },
-  jersey: { label: 'Jersey', status: 'soon' },
-  sneaker: { label: 'Sneaker', status: 'soon' },
+  jersey: { label: 'Jersey', status: 'live' },
+  sneaker: { label: 'Sneaker', status: 'live' },
   livery: { label: 'Car Livery', status: 'soon' },
   poster: { label: 'Poster', status: 'soon' },
   album: { label: 'Album Cover', status: 'soon' },
@@ -158,7 +158,14 @@ export interface LightingConfig {
   shadow: boolean
 }
 
+export interface SneakerPartConfig {
+  color: string
+  material: string
+}
+
 export interface DesignDocument {
+  /** Sneaker part colors/materials (sneaker projects only). */
+  sneaker?: { parts: Record<string, SneakerPartConfig> }
   id: string
   projectType: ProjectType
   version: number

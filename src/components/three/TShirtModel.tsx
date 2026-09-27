@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import type { ThreeEvent } from '@react-three/fiber'
 import { buildGarment } from '@/lib/garment/geometry'
-import { getDims, parseVariantKey, variantKey } from '@/lib/garment/params'
+import { getDims, isJerseyVariant, jerseyDimsFor, parseVariantKey, variantKey } from '@/lib/garment/params'
 import { ZONES, zonesForPart, type GarmentPart, type Zone } from '@/lib/garment/zones'
 import { getMaterialPreset, getWeaveTextures } from '@/lib/garment/materials'
 import { bakePart } from '@/lib/garment/bake'
@@ -55,8 +55,11 @@ export function TShirtModel() {
   const updateLayer = useEditorStore((s) => s.updateLayer)
   const pushHistory = useEditorStore((s) => s.pushHistory)
 
-  const variant = useMemo(() => parseVariantKey(doc.garment.variant), [doc.garment.variant])
-  const build = useMemo(() => buildGarment(getDims(variant), variantKey(variant)), [variant])
+  const dims = useMemo(
+    () => (isJerseyVariant(doc.garment.variant) ? jerseyDimsFor(doc.garment.variant) : getDims(parseVariantKey(doc.garment.variant))),
+    [doc.garment.variant],
+  )
+  const build = useMemo(() => buildGarment(dims, doc.garment.variant), [dims, doc.garment.variant])
 
   const parts = useMemo(
     () => ({
@@ -102,7 +105,7 @@ export function TShirtModel() {
 
   function rebake() {
     const state = useEditorStore.getState()
-    for (const part of ['body-front', 'body-back', 'sleeve-l', 'sleeve-r'] as GarmentPart[]) {
+    for (const part of ['body-front', 'body-back', 'sleeve-l', 'sleeve-r'] as const) {
       const pt = parts[part]
       const bake = bakePart(state.doc, part, BAKE_SIZE, imagesRef.current, {
         selectedLayerId: state.selectedLayerId,
@@ -237,13 +240,16 @@ export function TShirtModel() {
         <meshPhysicalMaterial {...commonProps} map={parts['body-back'].map} roughnessMap={parts['body-back'].roughMap} />
       </mesh>
 
+      {dims.sleeveless ? null : (
       <mesh geometry={build.sleeveL.geometry} castShadow receiveShadow {...handlers('sleeve-l')}>
         <meshPhysicalMaterial {...commonProps} map={parts['sleeve-l'].map} roughnessMap={parts['sleeve-l'].roughMap} />
       </mesh>
-
+      )}
+      {dims.sleeveless ? null : (
       <mesh geometry={build.sleeveR.geometry} castShadow receiveShadow {...handlers('sleeve-r')}>
         <meshPhysicalMaterial {...commonProps} map={parts['sleeve-r'].map} roughnessMap={parts['sleeve-r'].roughMap} />
       </mesh>
+      )}
 
       <mesh geometry={build.collar} castShadow>
         <meshPhysicalMaterial

@@ -91,19 +91,26 @@ export default async function LandingPage() {
             The AFRA Design Engine drives every category from a single document model. Apparel is live today — the rest are on the grid.
           </p>
           <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {CATEGORIES.map((c) => (
-              <div
-                key={c.name}
-                className={`rounded-xl border p-5 text-center ${
-                  c.status === 'live' ? 'border-afra-orange/50 bg-afra-panel' : 'border-afra-border bg-afra-panel/50'
-                }`}
-              >
-                <div className={`text-sm font-medium ${c.status === 'live' ? 'text-afra-white' : 'text-afra-muted'}`}>{c.name}</div>
-                <div className={`mt-1.5 text-[9px] uppercase tracking-[0.18em] ${c.status === 'live' ? 'text-afra-orange' : 'text-afra-muted/60'}`}>
-                  {c.status === 'live' ? 'Live now' : 'Coming soon'}
+            {CATEGORIES.map((c) => {
+              const route = c.name === 'T-Shirts' ? '/studio/tshirts' : c.name === 'Jerseys' ? '/studio/jerseys' : c.name === 'Sneakers' ? '/studio/sneakers' : null
+              const inner = (
+                <>
+                  <div className={`text-sm font-medium ${c.status === 'live' ? 'text-afra-white' : 'text-afra-muted'}`}>{c.name}</div>
+                  <div className={`mt-1.5 text-[9px] uppercase tracking-[0.18em] ${c.status === 'live' ? 'text-afra-orange' : 'text-afra-muted/60'}`}>
+                    {c.status === 'live' ? 'Open studio' : 'Coming soon'}
+                  </div>
+                </>
+              )
+              return route ? (
+                <Link key={c.name} href={route} className="rounded-xl border border-afra-border bg-afra-panel/60 p-5 text-center transition-colors hover:border-afra-orange/60">
+                  {inner}
+                </Link>
+              ) : (
+                <div key={c.name} className="rounded-xl border border-afra-border bg-afra-panel/50 p-5 text-center">
+                  {inner}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </section>

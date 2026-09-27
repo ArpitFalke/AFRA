@@ -1,17 +1,18 @@
-import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth/session'
-import { EditorPageClient } from './EditorPageClient'
+import { prisma } from '@/lib/db'
+import { studioForProjectType } from '@/lib/studios'
 
 export const metadata = { title: 'Editor' }
 
 export default async function EditorPage({ params }: { params: Promise<{ projectId: string }> }) {
-  const user = await getCurrentUser()
-  if (!user) redirect('/sign-in')
+  await getCurrentUser()
   const { projectId } = await params
-  return (
-    <Suspense>
-      <EditorPageClient projectId={projectId} user={{ email: user.email, name: user.name, plan: user.plan }} />
-    </Suspense>
-  )
+  const project = await prisma.project.findUnique({ where: { id: projectId }, select: { projectType: true } })
+  const studio = project ? studioForProjectType(project.projectType) : null
+  redirect(studio ? studioRoutePath(studio.category, projectId) : '/dashboard')
+}
+
+function studioRoutePath(category: string, projectId: string) {
+  return `/studio/${category}/project/${projectId}`
 }

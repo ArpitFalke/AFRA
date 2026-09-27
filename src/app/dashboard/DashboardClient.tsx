@@ -9,6 +9,7 @@ import { Toaster, toast } from '@/components/shared/Toast'
 import { Spinner } from '@/components/shared/Spinner'
 import { PROJECT_TYPES, PROJECT_TYPE_META, type ProjectType } from '@/lib/design/types'
 import { renderPreviewToCanvas } from '@/lib/design/preview'
+import { studioForProjectType, studioRoute } from '@/lib/studios'
 import { VariantSelector } from '@/components/shared/VariantSelector'
 import { DEFAULT_VARIANT, variantKey, type TShirtVariant } from '@/lib/garment/params'
 
@@ -66,7 +67,8 @@ export function DashboardClient({
       })
       const body = (await res.json()) as { project?: { id: string }; error?: { message: string } }
       if (!res.ok || !body.project) throw new Error(body.error?.message ?? 'Could not create the project.')
-      router.push(`/editor/${body.project.id}${opts.ai ? '?ai=1' : ''}`)
+      const studio = studioForProjectType(opts.projectType)
+      router.push(studio ? `${studioRoute(studio.category, body.project.id)}${opts.ai ? '?ai=1' : ''}` : `/editor/${body.project.id}`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not create the project.')
       setCreating(false)
@@ -104,6 +106,11 @@ export function DashboardClient({
             <AfraLogo size={22} />
           </Link>
           <div className="flex items-center gap-3">
+            <nav className="hidden items-center gap-4 text-xs text-afra-muted md:flex">
+              <Link href="/studio/tshirts" className="transition-colors hover:text-afra-white">T-Shirts</Link>
+              <Link href="/studio/jerseys" className="transition-colors hover:text-afra-white">Jerseys</Link>
+              <Link href="/studio/sneakers" className="transition-colors hover:text-afra-white">Sneakers</Link>
+            </nav>
             <span className="hidden rounded-full border border-afra-border px-2.5 py-1 text-[10px] uppercase tracking-wider text-afra-muted sm:block">
               {user.plan} plan
             </span>
@@ -146,7 +153,7 @@ export function DashboardClient({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((p) => (
                 <div key={p.id} className="group relative overflow-hidden rounded-xl border border-afra-border bg-afra-panel transition-colors hover:border-afra-muted">
-                  <Link href={`/editor/${p.id}`} className="block">
+                  <Link href={studioForProjectType(p.projectType) ? studioRoute(studioForProjectType(p.projectType)!.category, p.id) : `/editor/${p.id}`} className="block">
                     <div className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-afra-surface">
                       {p.thumbnail ? (
                         // eslint-disable-next-line @next/next/no-img-element

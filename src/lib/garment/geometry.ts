@@ -58,8 +58,8 @@ export function shoulderLineY(dims: GarmentDims, xj: number, isBack: boolean): n
   return y
 }
 
-/** Where the neckline ends and the shoulder begins (normalized xj). */
-const NECK_XJ = 0.3
+/** Default neckline half-width (normalized xj); jerseys override per sport. */
+const DEFAULT_NECK_XJ = 0.3
 
 /** Cloth curvature: z offset across the panel (0 at side seams, full at center). */
 function panelCurve(xj: number, depth: number, bias: number): number {
@@ -136,13 +136,14 @@ export function buildBody(dims: GarmentDims, opts: { rows?: number; cols?: numbe
 
   // Neckline ring: the exact top edges of the two panels between the neck
   // boundaries — front half (with scoop), then back half (higher).
+  const neckXj = dims.neckWidthFrac ?? DEFAULT_NECK_XJ
   const neckRing: THREE.Vector3[] = []
   const neckCols = 48
   for (let j = 0; j <= neckCols; j++) {
     const tt = j / neckCols
     const front = tt <= 0.5
     const f = front ? tt / 0.5 : (tt - 0.5) / 0.5
-    const xj = lerp(-NECK_XJ, NECK_XJ, front ? f : 1 - f)
+    const xj = lerp(-neckXj, neckXj, front ? f : 1 - f)
     const halfW = halfWidthAt(dims, 1)
     const depth = depthAt(dims, 1)
     const y = shoulderLineY(dims, xj, !front)

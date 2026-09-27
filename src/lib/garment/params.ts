@@ -33,10 +33,37 @@ export const SLEEVES: { id: SleeveLen; label: string }[] = [
   { id: 'full', label: 'Full Sleeve' },
 ]
 
+export type JerseySport = 'football' | 'basketball' | 'racing' | 'esports'
+
+export const JERSEY_SPORTS: { id: JerseySport; label: string; description: string }[] = [
+  { id: 'football', label: 'Football', description: 'Short sleeve, crew collar' },
+  { id: 'basketball', label: 'Basketball', description: 'Sleeveless tank' },
+  { id: 'racing', label: 'Racing', description: 'Snap-fit race cut' },
+  { id: 'esports', label: 'Esports', description: 'Long sleeve, high collar' },
+]
+
 export const DEFAULT_VARIANT: TShirtVariant = { gender: 'mens', fit: 'regular', sleeve: 'half' }
 
 export function variantKey(v: TShirtVariant): string {
   return `${v.gender}-${v.fit}-${v.sleeve}`
+}
+
+const JERSEY_DIMS: Record<JerseySport, Partial<GarmentDims>> = {
+  football: { hemY: -0.84, chestHalfWidth: 0.52, waistHalfWidth: 0.5, neckScoop: 0.05, neckWidthFrac: 0.34, drapeAmp: 0.012 },
+  basketball: { hemY: -0.88, chestHalfWidth: 0.54, waistHalfWidth: 0.53, shoulderHalfWidth: 0.54, neckScoop: 0.075, neckWidthFrac: 0.42, sleeveless: true, drapeAmp: 0.008 },
+  racing: { hemY: -0.8, chestHalfWidth: 0.49, waistHalfWidth: 0.46, neckScoop: 0.035, neckWidthFrac: 0.26, drapeAmp: 0.007, sleeveLength: 0.34, sleeveCuffRadius: 0.1 },
+  esports: { hemY: -0.8, chestHalfWidth: 0.5, waistHalfWidth: 0.48, neckScoop: 0.03, neckWidthFrac: 0.24, drapeAmp: 0.008, sleeveLength: 0.6, sleeveCuffRadius: 0.09, sleeveAngle: 0.72 },
+}
+
+export function isJerseyVariant(key: string): boolean {
+  return key.startsWith('jersey-')
+}
+
+export function jerseyDimsFor(key: string): GarmentDims {
+  const sport = (key.replace('jersey-', '') || 'football') as JerseySport
+  const base = getDims({ gender: 'mens', fit: 'regular', sleeve: 'half' })
+  const overridden = { ...base, ...(JERSEY_DIMS[sport] ?? JERSEY_DIMS.football) }
+  return overridden
 }
 
 export function parseVariantKey(key: string | undefined | null): TShirtVariant {
@@ -50,6 +77,10 @@ export function parseVariantKey(key: string | undefined | null): TShirtVariant {
 
 /** Garment dimensions in world units (shirt height ≈ 1.6). */
 export interface GarmentDims {
+  /** Tank tops (basketball) have no sleeves. */
+  sleeveless?: boolean
+  /** Neck opening half-width as a fraction of the shoulder line. */
+  neckWidthFrac?: number
   /** y of hem (negative = below origin). */
   hemY: number
   /** y of shoulder line. */

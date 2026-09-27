@@ -13,9 +13,11 @@ import type { DesignDocument } from '@/lib/design/types'
 export function EditorPageClient({
   projectId,
   user,
+  category = 'tshirts',
 }: {
   projectId: string
   user: { email: string; name: string | null; plan: string }
+  category?: string
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -77,5 +79,5 @@ export function EditorPageClient({
     )
   }
 
-  return <EditorShell user={user} autoOpenAI={searchParams.get('ai') === '1'} />
+  return <EditorShell user={user} autoOpenAI={searchParams.get('ai') === '1'} category={category} />
 }

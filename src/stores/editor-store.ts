@@ -46,6 +46,7 @@ interface EditorState {
   duplicateLayer: (id: string) => void
   reorderLayer: (id: string, dir: 'up' | 'down') => void
   setGarment: (patch: Partial<DesignDocument['garment']>) => void
+  setSneakerPart: (part: string, patch: { color?: string; material?: string }) => void
   setScene: (patch: Partial<DesignDocument['scene']>) => void
   setLighting: (patch: Partial<DesignDocument['lighting']>) => void
   setProjectName: (name: string) => void
@@ -67,6 +68,7 @@ function baseDoc(): DesignDocument {
     version: 2,
     metadata: { title: '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     garment: { color: '#141416', material: 'cotton', variant: 'mens-regular-half', opacity: 1 },
+    sneaker: undefined,
     layers: [],
     scene: { background: 'studio', customBackground: '#0D0D0E', floor: true },
     lighting: { preset: 'studio', intensity: 1, shadow: true },
@@ -174,6 +176,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }),
 
   setGarment: (patch) => set((s) => withHistory(s, { ...s.doc, garment: { ...s.doc.garment, ...patch } })),
+  setSneakerPart: (part: string, patch: { color?: string; material?: string }) =>
+    set((s) => {
+      const sneaker = s.doc.sneaker ?? { parts: {} }
+      const parts = { ...sneaker.parts }
+      parts[part] = { ...parts[part], ...patch }
+      return withHistory(s, { ...s.doc, sneaker: { parts } })
+    }),
   setScene: (patch) => set((s) => withHistory(s, { ...s.doc, scene: { ...s.doc.scene, ...patch } })),
   setLighting: (patch) => set((s) => withHistory(s, { ...s.doc, lighting: { ...s.doc.lighting, ...patch } })),
 
