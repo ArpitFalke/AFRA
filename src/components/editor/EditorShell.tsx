@@ -10,8 +10,10 @@ import { AIGenerateModal } from './AIGenerateModal'
 import { AIGraphicModal } from './AIGraphicModal'
 import { ExportDialog } from './ExportDialog'
 import { PresentationMode } from './PresentationMode'
-import { Toaster } from '@/components/shared/Toast'
+import { Toaster, toast } from '@/components/shared/Toast'
 import { useEditorStore } from '@/stores/editor-store'
+import { uploadAssetFile } from '@/hooks/useAssets'
+import { createGraphicLayer } from '@/lib/design/defaults'
 import { useAutosave } from '@/hooks/useAutosave'
 import { useShortcuts } from '@/hooks/useShortcuts'
 
@@ -47,8 +49,55 @@ export function EditorShell({ user, autoOpenAI = false }: { user: EditorUser; au
   useShortcuts({ save: saveManually })
 
   useEffect(() => {
-    setView('orbit')
+    setView('product')
   }, [setView])
+
+  // Paste an image from the clipboard straight onto the current zone
+  useEffect(() => {
+    const onPaste = async (e: ClipboardEvent) => {
+      const item = Array.from(e.clipboardData?.items ?? []).find((i) => i.type.startsWith('image/'))
+      if (!item) return
+      const file = item.getAsFile()
+      if (!file) return
+      try {
+        const asset = await uploadAssetFile(new File([file], 'pasted-image', { type: file.type }))
+        const s = useEditorStore.getState()
+        const img = new Image()
+        img.onload = () => {
+          s.addLayer(createGraphicLayer(s.activeZone, { id: asset.id, src: asset.src, aspect: img.naturalWidth / Math.max(1, img.naturalHeight) }, { name: 'Pasted image' }))
+          toast.success('Pasted image added to ' + s.activeZone.replace('-', ' '))
+        }
+        img.src = asset.src
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Paste failed')
+      }
+    }
+    window.addEventListener('paste', onPaste)
+    return () => window.removeEventListener('paste', onPaste)
+  }, [])
+
+  // Drag & drop an image file onto the canvas
+  const onDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault()
+    const file = Array.from(e.dataTransfer?.files ?? []).find((f) => f.type.startsWith('image/'))
+    if (!file) return
+    try {
+      const asset = await uploadAssetFile(file)
+      const s = useEditorStore.getState()
+      const img = new Image()
+      img.onload = () => {
+        s.addLayer(createGraphicLayer(s.activeZone, { id: asset.id, src: asset.src, aspect: img.naturalWidth / Math.max(1, img.naturalHeight) }, { name: file.name.slice(0, 30) }))
+        toast.success('Image added to ' + s.activeZone.replace('-', ' '))
+      }
+      img.src = asset.src
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Drop failed')
+    }
+  }, [])
+
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+  }, [])
 
   const openExport = useCallback(() => setExportOpen(true), [])
 
@@ -69,7 +118,7 @@ export function EditorShell({ user, autoOpenAI = false }: { user: EditorUser; au
       <div className="relative flex min-h-0 flex-1">
         <LeftToolbar panel={panel} setPanel={setPanel} onClose={() => setPanel(null)} onOpenAIGraphic={() => setAiGraphicOpen(true)} />
 
-        <main className="relative min-w-0 flex-1 bg-afra-bg">
+        <main className="relative min-w-0 flex-1 bg-afra-bg" onDrop={onDrop} onDragOver={onDragOver}>
           <Viewport />
           {saveState === 'error' && (
             <button

@@ -2,6 +2,16 @@
 
 import { useCallback, useEffect, useState } from 'react'
 
+/** Upload one file to the asset library (shared by panels, paste & drop). */
+export async function uploadAssetFile(file: File): Promise<AssetItem> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch('/api/assets', { method: 'POST', body: form })
+  const body = (await res.json()) as { asset?: AssetItem; error?: { message: string } }
+  if (!res.ok || !body.asset) throw new Error(body.error?.message ?? 'Upload failed')
+  return body.asset
+}
+
 export interface AssetItem {
   id: string
   name: string

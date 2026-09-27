@@ -304,9 +304,18 @@ export function drawLayer(
       if (image) {
         const g = layer as GraphicLayer
         if (g.blend && g.blend !== 'normal') ctx.globalCompositeOperation = g.blend
+        const crop = g.crop ?? { top: 0, right: 0, bottom: 0, left: 0 }
+        const iw = image.naturalWidth || 1
+        const ih = image.naturalHeight || 1
+        const sx = crop.left * iw
+        const sy = crop.top * ih
+        const sw = Math.max(1, iw * (1 - crop.left - crop.right))
+        const sh = Math.max(1, ih * (1 - crop.top - crop.bottom))
+        const aspectEff = sw / sh
         const wpx = g.aspect >= 1 ? g.baseSize : g.baseSize * g.aspect
-        const hpx = g.aspect >= 1 ? g.baseSize / g.aspect : g.baseSize
-        ctx.drawImage(image, -wpx / 2, -hpx / 2, wpx, hpx)
+        const hpx = (g.aspect >= 1 ? g.baseSize / g.aspect : g.baseSize) * (g.stretchY ?? 1) * ((g.aspect || 1) / aspectEff)
+        ctx.scale(g.flipX ? -1 : 1, g.flipY ? -1 : 1)
+        ctx.drawImage(image, sx, sy, sw, sh, -wpx / 2, -hpx / 2, wpx, hpx)
       }
       break
     }

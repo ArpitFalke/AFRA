@@ -14,7 +14,7 @@ export interface ParsedGraphicPrompt {
   mood: 'night' | 'bright' | 'mono'
 }
 
-export type GraphicMotif = 'helmet' | 'car' | 'circuit' | 'tire' | 'steering' | 'speed' | 'checker' | 'burst'
+export type GraphicMotif = 'helmet' | 'car' | 'circuit' | 'tire' | 'steering' | 'speed' | 'checker' | 'burst' | 'character' | 'rider' | 'banner'
 
 const NAMED_COLORS: Record<string, string> = {
   black: '#101012', white: '#F7F5EF', orange: '#FF5A1F', red: '#D8432B', crimson: '#B3242B',
@@ -30,6 +30,9 @@ const MOTIF_KEYWORDS: [GraphicMotif, RegExp][] = [
   ['circuit', /circuit|track|map|asphalt|route/],
   ['tire', /tire|tyre|wheel|rubber|tread/],
   ['steering', /steering|cockpit|wheel/],
+  ['character', /anime|character|warrior|hero|manga|girl|boy|samurai|figure/],
+  ['rider', /motorcycle|moto|bike|rider|biker|cyber/],
+  ['banner', /typography|banner|kanji|japanese|scroll|poster/],
   ['checker', /check|flag|grid|finish/],
   ['burst', /burst|star|explosion|impact|explosive/],
   ['speed', /speed|fast|motion|race|racing|turbo|drift|aero|night|tokyo|street/],
@@ -199,6 +202,39 @@ function svgBurst(p: string, s: string, rand: () => number): string {
   return `<g>${out}<circle cx="512" cy="512" r="130" fill="${p}"/><circle cx="512" cy="512" r="60" fill="${s}"/></g>`
 }
 
+function svgCharacter(p: string, s: string, l: string, rand: () => number): string {
+  // stylized original character bust — spiky silhouette, visor-like eyes
+  const tilt = (rand() - 0.5) * 6
+  return `<g transform="rotate(${tilt.toFixed(1)} 512 480)">
+    <path fill="${s}" d="M512 140c-120 0-200 86-206 208l-36 150 60 12 12-74c10 68 44 116 86 140l0 160 -140 90c-40 26-58 54-58 96h564c0-42-18-70-58-96l-140-90 0-160c46-26 80-80 86-154l14 88 60-14-38-152C690 210 622 140 512 140z"/>
+    <path fill="${p}" d="M512 190c-92 0-156 66-160 164l92 0c8-52 40-84 92-88-40 8-64 36-70 78l-90 4c-2 60 18 110 56 138-8-44 4-84 36-112-16 44-8 92 24 122 32-30 42-78 26-122 30 28 42 68 34 112 38-28 58-78 56-138l-90-4c-6-42-30-70-70-78 52 4 84 36 92 88l92 0c-4-98-68-164-160-164z" opacity="0.95"/>
+    <path fill="${l}" d="M402 560h220l-26 60h-168z" opacity="0.85"/>
+    <rect x="330" y="700" width="364" height="18" rx="9" fill="${l}" opacity="0.5"/>
+  </g>`
+}
+
+function svgRider(p: string, s: string, l: string, rand: () => number): string {
+  return `<g>
+    <path fill="${p}" d="M180 560c0-40 26-64 66-76l70-84c26-32 60-48 106-48h150c58 0 96 24 122 70l36 58 68 20c38 12 54 32 54 62v30c0 18-11 30-29 30H204c-18 0-24-14-24-32z"/>
+    <path fill="${l}" d="M470 470l40-52c14-18 32-26 56-26h30l-12 78z" opacity="0.9"/>
+    <circle cx="300" cy="640" r="70" fill="${s}"/><circle cx="300" cy="640" r="32" fill="${l}"/>
+    <circle cx="740" cy="640" r="70" fill="${s}"/><circle cx="740" cy="640" r="32" fill="${l}"/>
+    <path fill="none" stroke="${l}" stroke-width="14" stroke-linecap="round" d="M120 700c120 40 240 40 360 0" opacity="0.5"/>
+  </g>`
+}
+
+function svgBanner(p: string, s: string, rand: () => number): string {
+  const y = 380 + rand() * 220
+  const w = 560 + rand() * 160
+  const x = (1024 - w) / 2
+  return `<g>
+    <path fill="${p}" d="M${x} ${y} h${w} a24 24 0 0 1 24 24 v70 a24 24 0 0 1 -24 24 h-${w} a24 24 0 0 1 -24 -24 v-70 a24 24 0 0 1 24 -24 z" opacity="0.92"/>
+    <rect x="${x + 40}" y="${y + 34}" width="${w - 80}" height="14" rx="7" fill="${s}"/>
+    <rect x="${x + 110}" y="${y + 68}" width="${w - 220}" height="10" rx="5" fill="${s}" opacity="0.6"/>
+    <path fill="${s}" d="M${x - 60} ${y + 10} l46 59 -46 59 -46 -59z"/>
+  </g>`
+}
+
 const MOTIF_SVG: Record<GraphicMotif, (p: string, s: string, l: string, rand: () => number) => string> = {
   helmet: (p, s, l, r) => svgHelmet(p, s, l, r),
   car: (p, s, l, r) => svgCar(p, s, l, r),
@@ -208,6 +244,9 @@ const MOTIF_SVG: Record<GraphicMotif, (p: string, s: string, l: string, rand: ()
   speed: (p, s, l, r) => svgSpeed(p, s, l, r),
   checker: (_p, s, _l, r) => svgChecker(s, r),
   burst: (p, s, _l, r) => svgBurst(p, s, r),
+  character: (p, s, l, r) => svgCharacter(p, s, l, r),
+  rider: (p, s, l, r) => svgRider(p, s, l, r),
+  banner: (p, s, _l, r) => svgBanner(p, s, r),
 }
 
 export interface GeneratedGraphicSVG {
@@ -259,6 +298,9 @@ function motifLabel(m: GraphicMotif): string {
     speed: 'Speed lines',
     checker: 'Checkers',
     burst: 'Burst',
+    character: 'Character',
+    rider: 'Rider',
+    banner: 'Banner',
   }
   return labels[m]
 }

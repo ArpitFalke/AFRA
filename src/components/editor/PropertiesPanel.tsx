@@ -217,7 +217,52 @@ export function PropertiesPanel() {
         {l.type === 'graphic' && (
           <div className="mt-4">
             <SectionTitle>Graphic</SectionTitle>
-            <SliderRow label="Size" value={l.baseSize} min={80} max={900} step={5} onChange={(v) => updateLayer(l.id, { baseSize: v }, 'coalesce')} />
+            <SliderRow label="Width" value={l.baseSize} min={80} max={900} step={5} onChange={(v) => updateLayer(l.id, { baseSize: v }, 'coalesce')} />
+            <SliderRow
+              label="Height"
+              value={l.stretchY ?? 1}
+              min={0.4}
+              max={2.2}
+              step={0.02}
+              format={(v) => `${Math.round(v * 100)}%`}
+              onChange={(v) => updateLayer(l.id, { stretchY: v }, 'coalesce')}
+            />
+            <div className="my-1.5 flex items-center justify-between gap-2 py-1">
+              <span className="text-xs text-afra-muted">Flip</span>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => updateLayer(l.id, { flipX: !l.flipX })}
+                  className={`rounded-md border px-2 py-1 text-[10px] transition-colors ${
+                    l.flipX ? 'border-afra-orange text-afra-orange' : 'border-afra-border text-afra-muted hover:text-afra-white'
+                  }`}
+                >
+                  ↔ Horizontal
+                </button>
+                <button
+                  onClick={() => updateLayer(l.id, { flipY: !l.flipY })}
+                  className={`rounded-md border px-2 py-1 text-[10px] transition-colors ${
+                    l.flipY ? 'border-afra-orange text-afra-orange' : 'border-afra-border text-afra-muted hover:text-afra-white'
+                  }`}
+                >
+                  ↕ Vertical
+                </button>
+              </div>
+            </div>
+            <div className="label mb-1 mt-1">Crop</div>
+            {(['top', 'right', 'bottom', 'left'] as const).map((edge) => (
+              <SliderRow
+                key={edge}
+                label={edge[0].toUpperCase() + edge.slice(1)}
+                value={(l.crop?.[edge] ?? 0) * 100}
+                min={0}
+                max={45}
+                step={1}
+                format={(v) => `${Math.round(v)}%`}
+                onChange={(v) =>
+                  updateLayer(l.id, { crop: { top: 0, right: 0, bottom: 0, left: 0, ...l.crop, [edge]: v / 100 } }, 'coalesce')
+                }
+              />
+            ))}
             <p className="mt-1 text-[10px] leading-snug text-afra-muted">Drag the graphic directly on the shirt to reposition it. Prints follow the fabric.</p>
           </div>
         )}

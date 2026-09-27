@@ -112,11 +112,13 @@ export function AIGraphicModal({ open, onClose }: { open: boolean; onClose: () =
             Style
           </label>
           <select id="graphic-style" value={style} onChange={(e) => setStyle(e.target.value)} className="input cursor-pointer text-sm" disabled={loading}>
+            <option value="original">Original</option>
             <option value="racing">Racing</option>
-            <option value="street">Street</option>
-            <option value="minimal">Minimal</option>
+            <option value="anime">Anime-inspired</option>
+            <option value="streetwear">Streetwear</option>
             <option value="retro">Retro</option>
             <option value="technical">Technical</option>
+            <option value="custom">Custom</option>
           </select>
         </div>
         <div>
@@ -145,7 +147,7 @@ export function AIGraphicModal({ open, onClose }: { open: boolean; onClose: () =
         </div>
       )}
 
-      {variations && (
+      {variations && !loading && (
         <div className="mt-4">
           <div className="label mb-2">Choose a variation</div>
           <div className="grid grid-cols-3 gap-2">
@@ -175,9 +177,19 @@ export function AIGraphicModal({ open, onClose }: { open: boolean; onClose: () =
             Cancel
           </button>
           {variations ? (
-            <button onClick={addToShirt} disabled={!picked} className="btn-primary px-5 py-2 text-xs">
-              Add to shirt
-            </button>
+            <>
+              <button
+                onClick={() => void generate()}
+                disabled={loading}
+                className="btn-outline px-3 py-2 text-xs"
+                title="Generate a new set of variations"
+              >
+                {loading ? <Spinner size={13} /> : '↻ Regenerate'}
+              </button>
+              <button onClick={addToShirt} disabled={!picked} className="btn-primary px-5 py-2 text-xs">
+                Use this
+              </button>
+            </>
           ) : (
             <button onClick={() => void generate()} disabled={loading} className="btn-primary px-5 py-2 text-xs">
               {loading ? (

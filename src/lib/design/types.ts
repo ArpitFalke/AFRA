@@ -82,6 +82,13 @@ export interface GraphicLayer extends BaseLayer {
   baseSize: number
   /** Ink blend against the fabric. */
   blend?: 'normal' | 'multiply' | 'screen'
+  /** Mirror the artwork horizontally / vertically. */
+  flipX?: boolean
+  flipY?: boolean
+  /** Vertical stretch multiplier (1 = natural aspect). */
+  stretchY?: number
+  /** Crop fractions (0..0.45 per edge) — print-ready trimming. */
+  crop?: { top: number; right: number; bottom: number; left: number }
 }
 
 export type ShapePreset =
